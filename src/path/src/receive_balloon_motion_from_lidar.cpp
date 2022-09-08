@@ -5,7 +5,7 @@
 #include <swarm_msgs/MassPoint.h>
 #include <swarm_msgs/MassPoints.h>
 #include <tf/transform_datatypes.h>
-#include <mavros_msgs/State.h>  // Include the State message
+#include <mavros_msgs/State.h>
 
 class BalloonMotionReceiver {
 public:
@@ -22,7 +22,7 @@ public:
         masspoint_pub_ = nh.advertise<swarm_msgs::MassPoints>("/balloons/masspoint", 10);
 
         // RViz marker 发布器
-        marker_pub = nh.advertise<visualization_msgs::Marker>("/rviz/obj", 10);
+        marker_pub_ = nh.advertise<visualization_msgs::Marker>("/rviz/obj", 10);
         is_receive_lidar_pose_ = false;
 
         marker.type = visualization_msgs::Marker::SPHERE;
@@ -39,6 +39,13 @@ public:
         marker.scale.y = 1;
         marker.scale.z = 1;
         marker.header.frame_id = "world";
+
+        // 设置定时器，30Hz频率
+        timer_ = nh.createTimer(ros::Duration(1.0 / 30.0), &BalloonMotionReceiver::timerCallback, this);
+
+        swarm_msgs::MassPoint init_up_point;
+        init_up_point.position.z = 10.0;
+        latest_transformed_masspoints_.points.push_back(init_up_point);
     }
 
 private:
@@ -46,11 +53,15 @@ private:
     ros::Subscriber masspoint_sub_;
     ros::Subscriber state_sub_;
     ros::Publisher masspoint_pub_;
-    ros::Publisher marker_pub;
+    ros::Publisher marker_pub_;
+    ros::Timer timer_;  // 定时器
 
     geometry_msgs::PoseStamped trans_lidar_mav_;  // 激光雷达相对于无人机的位置
+    swarm_msgs::MassPoints latest_transformed_masspoints_;  // 保存最近一次处理的数据
     bool is_receive_lidar_pose_;
     double initial_z_offset_;  // Store the initial Z offset
+
+    visualization_msgs::Marker marker;
 
     // RViz接口函数：将气球数据发布为Marker显示
     void rviz_interface(int id, swarm_msgs::MassPoint point) {
@@ -59,9 +70,9 @@ private:
         marker.pose.position.x = point.position.x;  // 设置气球位置
         marker.pose.position.y = point.position.y;
         marker.pose.position.z = point.position.z;
-
+        
         // 发布Marker
-        marker_pub.publish(marker);
+        marker_pub_.publish(marker);
     }
 
     // Callback to receive UAV state
@@ -123,12 +134,13 @@ private:
             rviz_interface(i, transformed_point);
         }
 
-        // 发布转换后的目标点数据
-        masspoint_pub_.publish(transformed_masspoints);
+        latest_transformed_masspoints_ = transformed_masspoints;  // 保存最新的处理数据
     }
 
-    // RViz Marker
-    visualization_msgs::Marker marker;
+    void timerCallback(const ros::TimerEvent&) {
+        // 定时发布最新的处理数据
+        masspoint_pub_.publish(latest_transformed_masspoints_);
+    }
 };
 
 int main(int argc, char** argv) {

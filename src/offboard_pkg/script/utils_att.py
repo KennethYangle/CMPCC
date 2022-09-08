@@ -157,12 +157,12 @@ class Utils(object):
         # n_td = np.array([np.cos(yaw_d), np.sin(yaw_d), 0], dtype=np.float64)
         n_td = np.array([np.cos(pos_info["mav_yaw"]), np.sin(pos_info["mav_yaw"]), 0.], dtype=np.float64)
         v_1 = max(2.5 - pos_i[2]/500., 1.4) * (n_eo - n_td)   # n_t -> n_td
-        v_2 = 1.0 * n_td            # v   -> n_td
+        v_2 = 1.2 * n_td            # v   -> n_td
 
         v_d = v_1 + v_2
         # v_d /= np.linalg.norm(v_d)
         V = np.linalg.norm(pos_info["mav_vel"])
-        v_d *= V + 0.5
+        v_d *= V + 0.7
         # v_d *= V + 2.0
 
         a_d = self.sat(1.5 * (v_d - pos_info["mav_vel"]), 15.)
