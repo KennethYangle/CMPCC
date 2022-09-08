@@ -46,7 +46,7 @@ class Utils(object):
         self.w = params["WIDTH"] #simulation 720  Real_flight:640
         self.h = params["HEIGHT"] #simulation 405  Real_flight:405
         self.u0 = self.w/2.
-        self.v0 = self.h*0.48 # self.h*0.43 # self.h/2
+        self.v0 = self.h*0.47 # self.h*0.43 # self.h/2
         self.cnt = 0
         self.cnt_WP = 1
         self.v_norm_d = 10
@@ -196,17 +196,17 @@ class Utils(object):
         n_td = np.array([np.cos(pos_info["mav_yaw"]), np.sin(pos_info["mav_yaw"]), 0.], dtype=np.float64)
         # n_td = n_ec
         # n_td /= np.linalg.norm(n_td)
-        v_1 = max(2.0 - pos_i[2]/100., 0.5) * (n_eo - n_td)   # n_t -> n_td
-        v_2 = 1.0 * n_td            # v   -> n_td
+        v_1 = max(2.0 - pos_i[2]/100., 0.6) * (n_eo - n_td)   # n_t -> n_td
+        v_2 = 0.9 * n_td            # v   -> n_td
 
         v_d = v_1 + v_2
         v_d /= np.linalg.norm(v_d)
         V = np.linalg.norm(pos_info["mav_vel"])
-        v_d *= V + 0.7
+        v_d *= V + 0.6
         v_d[2] = self.SaftyZ(v_d[2], 2.5)
         # v_d *= V + 2.0
 
-        yaw_rate = 0.0025*(self.u0 - pos_i[0])
+        yaw_rate = 0.003*(self.u0 - pos_i[0])
         
         # print("n_co:{}, n_bo:{}, n_eo:{}, v_1:{}, v_2:{}, v_d:{}".format(n_co, n_bo, n_eo, v_1, v_2, v_d))
         return [0,0,0, v_d[0], v_d[1], v_d[2], yaw_rate]
