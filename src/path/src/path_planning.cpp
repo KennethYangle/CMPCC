@@ -64,7 +64,7 @@ void PathPlanningNode::pathPointsCallback(const swarm_msgs::MassPoints::ConstPtr
                                optimal_paths_msg.pieces[i].xT, 
                                optimal_paths_msg.pieces[i].vT, 
                                umax, umin, vmax, vmin);
-        std::cout << "x0: " << optimal_paths_msg.pieces[i].x0 << "\nxT: " << optimal_paths_msg.pieces[i].xT << "\nv0: " << optimal_paths_msg.pieces[i].v0 << "\nvT: " << optimal_paths_msg.pieces[i].vT << std::endl;
+        // std::cout << "x0: " << optimal_paths_msg.pieces[i].x0 << "\nxT: " << optimal_paths_msg.pieces[i].xT << "\nv0: " << optimal_paths_msg.pieces[i].v0 << "\nvT: " << optimal_paths_msg.pieces[i].vT << std::endl;
         auto [t1, t2, T, case_idx] = pmm3d.compute_times();
         // Synchronized u
         umax.x = pmm3d.pmm_x.umax; umax.y = pmm3d.pmm_y.umax; umax.z = pmm3d.pmm_z.umax;
