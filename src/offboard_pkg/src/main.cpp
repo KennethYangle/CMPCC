@@ -73,7 +73,7 @@ void local_acc_target(const double ax, const double ay, const double az, const d
     local_pva_pub.publish(pva_target);
 }
 
-void local_vel_target(const double vx, const double vy, const double vz)
+void local_vel_target(const double vx, const double vy, const double vz, const double yr=0.)
 {
     mavros_msgs::PositionTarget pva_target;
     pva_target.coordinate_frame = 1;
@@ -87,7 +87,7 @@ void local_vel_target(const double vx, const double vy, const double vz)
                 pva_target.IGNORE_AFX + pva_target.IGNORE_AFY + pva_target.IGNORE_AFZ +
                 pva_target.IGNORE_PX + pva_target.IGNORE_PY + pva_target.IGNORE_PZ ;
 
-    pva_target.yaw_rate = 0;
+    pva_target.yaw_rate = yr;
 
     local_pva_pub.publish(pva_target);
 }
@@ -326,6 +326,7 @@ int main(int argc, char **argv)
         {
             att_ax = attack_cmd.acceleration.x;  att_ay = attack_cmd.acceleration.y;  att_az = attack_cmd.acceleration.z;  att_yr = attack_cmd.yaw_dot;
             local_acc_target(att_ax, att_ay, att_az, att_yr);
+            // local_vel_target(attack_cmd.velocity.x, attack_cmd.velocity.y, attack_cmd.velocity.z, attack_cmd.yaw_dot);
 
             ros::spinOnce();
             rate.sleep();

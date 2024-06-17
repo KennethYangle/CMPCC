@@ -172,7 +172,7 @@ class Utils(object):
         yaw_rate = 2.0*(self.u0 - pos_i[0])/self.u0
         
         # print("n_co:{}, n_bo:{}, n_eo:{}, v_1:{}, v_2:{}, v_d:{}, a_d: {}".format(n_co, n_bo, n_eo, v_1, v_2, v_d, a_d))
-        return [a_d[0], a_d[1], a_d[2], yaw_rate]
+        return [a_d[0], a_d[1], a_d[2], yaw_rate, v_d[0], v_d[1], v_d[2]]
 
     def RadialGain(self, pos_i, r, max_gain, min_gain):
         err = (pos_i[0] - self.u0)**2 + (pos_i[1] - self.v0)**2

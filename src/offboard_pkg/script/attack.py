@@ -122,12 +122,18 @@ if __name__=="__main__":
             command.acceleration.y = cmd[1]
             command.acceleration.z = cmd[2]
             command.yaw_dot = cmd[3]
+            command.velocity.x = cmd[4]
+            command.velocity.y = cmd[5]
+            command.velocity.z = cmd[6]
         else:
             command.header.stamp = rospy.Time.now()
             command.acceleration.x = 0
             command.acceleration.y = 0
             command.acceleration.z = 0
             command.yaw_dot = 0
+            command.velocity.x = 0
+            command.velocity.y = 0
+            command.velocity.z = 0
         local_acc_pub.publish(command)
 
         rate.sleep()
