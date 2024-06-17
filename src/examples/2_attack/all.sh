@@ -97,5 +97,5 @@ sleep 3s
 
 
 # 录制bag，保存到/home/nvidia/record/
-gnome-terminal --tab -t "ROSbag Record" -- bash -c "rosbag record --split --size=512 /attack_cmd /camera/image_raw/compressed /mavros/state /mavros/global_position/global /mavros/imu/data /mavros/local_position/pose /mavros/local_position/velocity_local /mavros/rc/in /mavros/setpoint_raw/local /mavros/setpoint_position/local /mavros/setpoint_velocity/cmd_vel /tracker/pos_image  -o /home/nvidia/record/;exec bash"
+gnome-terminal --tab -t "ROSbag Record" -- bash -c "rosbag record --split --size=512 /attack_cmd /camera/image_raw/compressed /mavros/state /mavros/global_position/global /mavros/imu/data /mavros/local_position/pose /mavros/local_position/velocity_local /mavros/rc/in /mavros/setpoint_raw/local /mavros/setpoint_position/local /mavros/setpoint_velocity/cmd_vel /tracker/pos_image  -o /home/nvidia/record/att;exec bash"
 sleep 5s

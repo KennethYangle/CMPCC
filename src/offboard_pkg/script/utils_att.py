@@ -143,12 +143,12 @@ class Utils(object):
         n_ec = pos_info["mav_R"].dot(n_bc)
         
         # calacute the no
-        points = np.array([pos_i[0], pos_i[1]], dtype=np.float64).reshape(-1, 1, 2)     # 输入像素坐标
-        undistorted_points = cv2.fisheye.undistortPoints(points, self.K, self.distortion_coeffs)    # 去畸变
-        x_norm, y_norm = undistorted_points[0][0]   # 提取去畸变后的标准化坐标
+        # points = np.array([pos_i[0], pos_i[1]], dtype=np.float64).reshape(-1, 1, 2)     # 输入像素坐标
+        # undistorted_points = cv2.fisheye.undistortPoints(points, self.K, self.distortion_coeffs)    # 去畸变
+        # x_norm, y_norm = undistorted_points[0][0]   # 提取去畸变后的标准化坐标
+        # n_co = np.array([x_norm, y_norm, 1], dtype=np.float64)
         # print(pos_i[0], pos_i[1], x_norm, y_norm)
-        # n_co = np.array([pos_i[0] - self.u0, pos_i[1] - self.v0, self.f], dtype=np.float64)
-        n_co = np.array([x_norm, y_norm, 1], dtype=np.float64)
+        n_co = np.array([pos_i[0] - self.u0, pos_i[1] - self.v0, self.f], dtype=np.float64)
         n_co /= np.linalg.norm(n_co)
         n_bo = self.R_cb.dot(n_co)
         n_eo = pos_info["mav_R"].dot(n_bo)
@@ -156,7 +156,8 @@ class Utils(object):
         # 两种用法：1）给定世界系下固定的n_td，限定打击方向；2）相对光轴一向量，随相机运动
         # n_td = np.array([np.cos(yaw_d), np.sin(yaw_d), 0], dtype=np.float64)
         n_td = np.array([np.cos(pos_info["mav_yaw"]), np.sin(pos_info["mav_yaw"]), 0.], dtype=np.float64)
-        v_1 = max(1.5 - pos_i[2]/200., 0.7) * (n_eo - n_td)   # n_t -> n_td
+        # v_1 = max(2.5 - pos_i[2]/100., 0.5) * (n_eo - n_td)   # n_t -> n_td
+        v_1 = self.RadialGain(pos_i, self.u0, 2.5, 0.) * (1.1*n_eo - n_td)   # n_t -> n_td
         v_2 = 1.0 * n_td            # v   -> n_td
 
         v_d = v_1 + v_2
@@ -168,10 +169,15 @@ class Utils(object):
         a_d = self.sat(1.5 * (v_d - pos_info["mav_vel"]), 10.)
         # a_d[2] = self.sat(a_d[2], 2.)
 
-        yaw_rate = 1.5*(self.u0 - pos_i[0])/self.u0
+        yaw_rate = 2.0*(self.u0 - pos_i[0])/self.u0
         
         # print("n_co:{}, n_bo:{}, n_eo:{}, v_1:{}, v_2:{}, v_d:{}, a_d: {}".format(n_co, n_bo, n_eo, v_1, v_2, v_d, a_d))
         return [a_d[0], a_d[1], a_d[2], yaw_rate]
+
+    def RadialGain(self, pos_i, r, max_gain, min_gain):
+        err = (pos_i[0] - self.u0)**2 + (pos_i[1] - self.v0)**2
+        gain = err / r * max_gain + min_gain
+        return gain
 
     def RotateAttackAccelerationController2VelCmd(self, pos_info, pos_i, controller_reset, yaw_d=np.pi/2):
         if controller_reset: self.cnt = 0
