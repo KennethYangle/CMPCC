@@ -157,7 +157,7 @@ class Utils(object):
         # n_td = np.array([np.cos(yaw_d), np.sin(yaw_d), 0], dtype=np.float64)
         n_td = np.array([np.cos(pos_info["mav_yaw"]), np.sin(pos_info["mav_yaw"]), 0.], dtype=np.float64)
         # v_1 = max(2.5 - pos_i[2]/100., 0.5) * (n_eo - n_td)   # n_t -> n_td
-        v_1 = self.RadialGain(pos_i, self.u0, 1.5, 0.) * max(2.5 - pos_i[2]/100., 0.7) * (1.1*n_eo - n_td)   # n_t -> n_td
+        v_1 = self.RadialGain(pos_i, self.u0, 1.5, 0.) * max(2.5 - pos_i[2]/100., 0.5) * (1.1*n_eo - n_td)   # n_t -> n_td
         v_2 = 1.0 * n_td            # v   -> n_td
 
         v_d = v_1 + v_2
