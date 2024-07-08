@@ -1,0 +1,27 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "~/CMPCC/devel/include/**",
+        "/opt/ros/melodic/include/**",
+        "~/CMPCC/src/cmpcc/include/**",
+        "~/CMPCC/src/uav_simulator/DecompRos/decomp_ros_utils/include/**",
+        "~/CMPCC/src/uav_simulator/quadrotor_msgs/include/**",
+        "~/CMPCC/src/uav_simulator/so3_controller/include/**",
+        "~/CMPCC/src/uav_simulator/so3_quadrotor/include/**",
+        "/usr/include/**",
+        "/usr/local/include/**"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}
