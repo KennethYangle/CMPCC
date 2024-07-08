@@ -1,0 +1,7 @@
+<launch>
+
+<node pkg="rviz" name="rviz" type="rviz" output="log"
+  args="-d $(find uav_simulator)/config/rviz_config.rviz">
+</node>
+
+</launch>

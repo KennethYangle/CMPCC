@@ -222,7 +222,7 @@ Visualization Manager:
       Radius: 0.029999999329447746
       Shaft Diameter: 0.10000000149011612
       Shaft Length: 0.10000000149011612
-      Topic: /drone0/refer_path
+      Topic: /refer_path
       Unreliable: false
       Value: true
     - Alpha: 1
@@ -245,12 +245,12 @@ Visualization Manager:
       Radius: 0.029999999329447746
       Shaft Diameter: 0.10000000149011612
       Shaft Length: 0.10000000149011612
-      Topic: /drone0/predict_path
+      Topic: /predict_path
       Unreliable: false
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /drone0/drone_pose
+      Marker Topic: /drone_pose
       Name: DronePose
       Namespaces:
         "": true
@@ -258,7 +258,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/Marker
       Enabled: true
-      Marker Topic: /drone0/global_pose
+      Marker Topic: /global_pose
       Name: GlobalPose
       Namespaces:
         "": true
@@ -266,7 +266,7 @@ Visualization Manager:
       Value: true
     - Class: rviz/MarkerArray
       Enabled: true
-      Marker Topic: /drone0/vis
+      Marker Topic: /vis
       Name: Drone
       Namespaces:
         "": true

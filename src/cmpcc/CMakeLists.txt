@@ -75,6 +75,23 @@ target_link_libraries(simulation_node
     osqp::osqp
 )   
 
+add_executable(fly_node
+    src/fly.cpp
+    src/display_msg.cpp
+    src/mpc_solver.cpp
+    src/osqp_interface.cpp
+    src/model.cpp
+    src/map.cpp
+    src/bezier_base.cpp
+    src/my_spline.cpp
+    src/corridor.cpp) 
+add_dependencies(fly_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(fly_node
+    ${catkin_LIBRARIES}
+    yaml-cpp
+    osqp::osqp
+)
+
 add_executable(plot_bag_node
     src/plot_bag_node.cpp
     src/display_msg.cpp
