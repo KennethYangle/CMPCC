@@ -11,6 +11,7 @@ Panels:
         - /Planning1/many ReplanTraj1
         - /Planning1/initialReplanPts1
         - /Sensors1/SensedPoints_gpu1
+        - /Marker1
       Splitter Ratio: 0.5777778029441833
     Tree Height: 874
   - Class: rviz/Selection
@@ -269,6 +270,14 @@ Visualization Manager:
       Marker Topic: /vis
       Name: Drone
       Namespaces:
+        {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /rviz/obj
+      Name: Marker
+      Namespaces:
         "": true
       Queue Size: 100
       Value: true
@@ -308,10 +317,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 1.5697963237762451
+      Pitch: 0.1747969388961792
       Target Frame: world
       Value: XYOrbit (rviz)
-      Yaw: 4.698230743408203
+      Yaw: 4.233218669891357
     Saved:
       - Class: rviz/ThirdPersonFollower
         Distance: 4.048277378082275

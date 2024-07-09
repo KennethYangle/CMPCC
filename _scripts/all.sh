@@ -44,28 +44,35 @@ sleep 2s
 if [ $ISFLIGHT = 0 ]
 then
     # mavros
-    gnome-terminal -x bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch offboard_pkg mavros_sim.launch use_pix:=${USE_PIX};exec bash"
+    gnome-terminal --tab -t "mavros" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch offboard_pkg mavros_sim.launch use_pix:=${USE_PIX};exec bash"
     sleep 2s
 
+    # RflySim 接口
+    gnome-terminal --tab -t "RflySim Interface" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch rflysim_ros_pkg obj.launch ip:=${UE4IP};exec bash"
+    sleep 0.5s
+
+    # 仿真气球运动
+    gnome-terminal --tab -t "sim_balloon_node" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun path sim_balloon_node;exec bash"
+    sleep 0.5s
 else
     # mavros
-    gnome-terminal -x bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch mavros px4.launch fcu_url:="/dev/ttyACM0:115200";exec bash"
+    gnome-terminal --tab -t "mavros" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch mavros px4.launch fcu_url:="/dev/ttyACM0:115200";exec bash"
     sleep 2s
 fi
 
 # Rviz可视化，可选
-gnome-terminal -x bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch cmpcc rviz_view.launch;exec bash"
+gnome-terminal --tab -t "rviz" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch cmpcc rviz_view.launch;exec bash"
 sleep 3s
 
 # 规划+MPCC控制
-gnome-terminal -x bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch cmpcc fly.launch;exec bash"
+gnome-terminal --tab -t "MPCC" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch cmpcc fly.launch;exec bash"
 sleep 3s
 
 # mavros控制汇总
-gnome-terminal -x bash -c "source ${WS_DIR}/devel/setup.bash;rosrun offboard_pkg main_node;exec bash"
+gnome-terminal --tab -t "offboard" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun offboard_pkg main_node;exec bash"
 sleep 3s
 
 
 
-# gnome-terminal -x bash -c "rosbag record /d400/imu /d400/color/camera_info /d400/aligned_depth_to_color/image_raw /d400/aligned_depth_to_color/camera_info /d400/color/image_raw /camera/odom/sample /mavros/odometry/out /mavros/local_position/odom /MSF/odom/local /MSF/odom/global /mavros/setpoint_velocity/cmd_vel /mapLoc/pose -o /home/nvidia/record;exec bash"
+# gnome-terminal --window -- bash -c "rosbag record /d400/imu /d400/color/camera_info /d400/aligned_depth_to_color/image_raw /d400/aligned_depth_to_color/camera_info /d400/color/image_raw /camera/odom/sample /mavros/odometry/out /mavros/local_position/odom /MSF/odom/local /MSF/odom/global /mavros/setpoint_velocity/cmd_vel /mapLoc/pose -o /home/nvidia/record;exec bash"
 # sleep 5s
