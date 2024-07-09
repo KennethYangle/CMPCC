@@ -9,26 +9,44 @@
 #include <mavros_msgs/State.h>
 #include <mavros_msgs/PositionTarget.h>
 #include <quadrotor_msgs/PositionCommand.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <utils.h>
 
 mavros_msgs::State current_state;
 geometry_msgs::PoseStamped local_pos, ref_pose;
 geometry_msgs::TwistStamped local_vel;
 quadrotor_msgs::PositionCommand mpcc_cmd;
+double mav_yaw = 0.;
 ros::Subscriber state_sub, local_pos_sub, local_vel_sub, mpcc_cmd_sub;
 ros::Publisher local_pos_pub, local_pva_pub, predict_pos_pub, ref_pos_pub;
 ros::ServiceClient arming_client, set_mode_client;
+Utils utils;
 
 void state_cb(const mavros_msgs::State::ConstPtr& msg){
     current_state = *msg;
 }
 void local_pos_cb(const geometry_msgs::PoseStamped::ConstPtr& msg){
     local_pos = *msg;
+
+    // 从Pose中提取四元数
+    tf2::Quaternion q = tf2::Quaternion(
+        msg->pose.orientation.x,
+        msg->pose.orientation.y,
+        msg->pose.orientation.z,
+        msg->pose.orientation.w
+    );
+    // 将四元数转换为RPY（Roll, Pitch, Yaw）
+    double roll, pitch, yaw;
+    tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
+
+    mav_yaw = yaw;
 }
 void local_vel_cb(const geometry_msgs::TwistStamped::ConstPtr& msg){
     local_vel = *msg;
 }
 void mpcc_cmd_cb(const quadrotor_msgs::PositionCommand::ConstPtr& msg){
     mpcc_cmd = *msg;
+    mpcc_cmd.yaw_dot = utils.yaw_control(mpcc_cmd.yaw, mav_yaw, 1.0, 1.0);
 }
 
 
@@ -72,7 +90,7 @@ void local_vel_target(const double vx, const double vy, const double vz)
 
 void local_pva_target(const double px, const double py, const double pz,
         const double vx, const double vy, const double vz, const double ax,
-        const double ay, const double az)
+        const double ay, const double az, const double yr=0.)
 {
     mavros_msgs::PositionTarget pva_target;
     pva_target.coordinate_frame = 1;
@@ -90,7 +108,7 @@ void local_pva_target(const double px, const double py, const double pz,
 
     pva_target.type_mask = pva_target.IGNORE_YAW;
 
-    pva_target.yaw_rate = 0;
+    pva_target.yaw_rate = yr;
 
     local_pva_pub.publish(pva_target);
 }
@@ -225,7 +243,7 @@ int main(int argc, char **argv)
     {
         local_pva_target(mpcc_cmd.position.x, mpcc_cmd.position.y, mpcc_cmd.position.z, 
                 mpcc_cmd.velocity.x, mpcc_cmd.velocity.y, mpcc_cmd.velocity.z,
-                mpcc_cmd.acceleration.x, mpcc_cmd.acceleration.y, mpcc_cmd.acceleration.z);
+                mpcc_cmd.acceleration.x, mpcc_cmd.acceleration.y, mpcc_cmd.acceleration.z, mpcc_cmd.yaw_dot);
 
         ros::spinOnce();
         rate.sleep();

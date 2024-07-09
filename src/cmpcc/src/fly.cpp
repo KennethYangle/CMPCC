@@ -138,6 +138,8 @@ void cmd_callback(const ros::TimerEvent& event){
         tmpVector.y = stateCmd.coeffRef(5,0);
         tmpVector.z = stateCmd.coeffRef(8,0);
         cmdMsg.acceleration = tmpVector;
+        cmdMsg.yaw = simSolver.map.getYaw(stateCmd.coeffRef(9, 0));
+        // cout << "stateCmd.coeffRef(9, 0): " << stateCmd.coeffRef(9, 0) << endl;
         cmdMsg.header.stamp = ros::Time::now();
         cmd_pub.publish(cmdMsg);
     }
@@ -168,18 +170,10 @@ int main(int argc, char **argv)
     cmdMsg.header.frame_id = "world";
     
     // init position: 
-    tmpPoint.x = 0;
-    tmpPoint.y = 0;
-    tmpPoint.z = 0;
-    cmdMsg.position = tmpPoint;
-    tmpVector.x = 0;
-    tmpVector.y = 0;
-    tmpVector.z = 0;
-    cmdMsg.velocity = tmpVector;
-    tmpVector.x = 0;
-    tmpVector.y = 0;
-    tmpVector.z = 0;
-    cmdMsg.acceleration = tmpVector;
+    tmpPoint.x = 0; tmpPoint.y = 0; tmpPoint.z = 0; cmdMsg.position = tmpPoint;
+    tmpVector.x = 0; tmpVector.y = 0; tmpVector.z = 0; cmdMsg.velocity = tmpVector;
+    tmpVector.x = 0; tmpVector.y = 0; tmpVector.z = 0; cmdMsg.acceleration = tmpVector;
+    cmdMsg.yaw_dot = 0;
     ros::Rate loopRate(10);
     ros::Time startT = ros::Time::now();
     while(ros::ok()){

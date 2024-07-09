@@ -155,7 +155,7 @@ namespace ft{
             double basisDeriv = bezierBasisDerivative(i, t);
             vel += cps.row(i) * basisDeriv;
         }
-        return vel.normalized() * 3;
+        return vel / 3.0;
     }
 
     // 3阶贝塞尔曲线加速度计算函数
@@ -198,6 +198,15 @@ namespace ft{
         position = getBezierPos(t, control_points[idx]);
         velocity = getBezierVel(t, control_points[idx]);
         acceleration = getBezierAcc(t, control_points[idx]);
+    }
+
+    double Map::getYaw(double t){
+        t = std::min(t, thetaMax) / 10;     // 保护不越界
+        int idx = int(t);   // 位于第几段
+        t -= idx;           // [0, 1)
+
+        Vector3d velocity = getBezierVel(t, control_points[idx]); 
+        return std::atan2(velocity[1], velocity[0]);
     }
 
 } //namespace ft

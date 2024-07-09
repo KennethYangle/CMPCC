@@ -42,6 +42,7 @@ namespace ft {
             Eigen::Vector3d & position, 
             Eigen::Vector3d & velocity, 
             Eigen::Vector3d & acceleration);
+        double getYaw(double theta);
     };
 }
 

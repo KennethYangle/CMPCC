@@ -5,3 +5,4 @@ screen.txt
 .catkin_workspace
 src/CMakeLists.txt
 doxygen/
+*.pyc
