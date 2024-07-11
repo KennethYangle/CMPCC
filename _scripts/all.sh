@@ -64,9 +64,11 @@ fi
 gnome-terminal --tab -t "rviz" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch cmpcc rviz_view.launch;exec bash"
 sleep 3s
 
-# 规划+MPCC控制
+# 路径、轨迹规划 + MPCC控制
+gnome-terminal --tab -t "path finding" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun path path_finding_node;exec bash"
+sleep 1s
 gnome-terminal --tab -t "MPCC" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch cmpcc fly.launch;exec bash"
-sleep 3s
+sleep 2s
 
 # mavros控制汇总
 gnome-terminal --tab -t "offboard" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun offboard_pkg main_node;exec bash"

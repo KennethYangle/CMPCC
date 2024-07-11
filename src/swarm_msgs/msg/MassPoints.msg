@@ -1,0 +1,1 @@
+MassPoint[] points

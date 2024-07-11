@@ -15,6 +15,7 @@ namespace ft {
     private:
         int num_order, num_segment, traj_order, K_max;
         double s_step, global_traj_time;
+        bool pathRead;
         std::vector<int> K_data_my;
         std::vector<double> range, K_data;
         std::vector<double> theta_sample;

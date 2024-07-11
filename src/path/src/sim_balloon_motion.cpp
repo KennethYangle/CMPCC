@@ -9,8 +9,11 @@
 #include <string>
 #include <rflysim_ros_pkg/Obj.h>
 #include <visualization_msgs/Marker.h>
+#include <geometry_msgs/Vector3.h>
+#include <swarm_msgs/MassPoint.h>
+#include <swarm_msgs/MassPoints.h>
 
-ros::Publisher sphere_pub, marker_pub;
+ros::Publisher mass_points_pub, sphere_pub, marker_pub;
 
 struct balloon {
     Eigen::Vector3d position;
@@ -64,12 +67,29 @@ public:
         for (auto& b : balloons) {
             b.position += b.velocity * dt;
         }
+        publishBalloons();
 
         // Show in RflySim and Rviz
         for (int i=0; i<balloons.size(); i++) {
             rflysim_interface(i);
             rviz_interface(i);
         }
+    }
+
+    void publishBalloons() {
+        swarm_msgs::MassPoints mass_points_msg;
+        for (const auto& balloon : balloons) {
+            swarm_msgs::MassPoint point;
+            point.position.x = balloon.position[0];
+            point.position.y = balloon.position[1];
+            point.position.z = balloon.position[2];
+            point.velocity.x = balloon.velocity[0];
+            point.velocity.y = balloon.velocity[1];
+            point.velocity.z = balloon.velocity[2];
+            mass_points_msg.points.push_back(point);
+        }
+
+        mass_points_pub.publish(mass_points_msg);
     }
 
     void rflysim_interface(int id) {
@@ -99,6 +119,7 @@ private:
 int main(int argc, char **argv) {
     ros::init(argc, argv, "sim_balloon_node");
     ros::NodeHandle nh;
+    mass_points_pub = nh.advertise<swarm_msgs::MassPoints>("balloons/masspoint", 10);
     sphere_pub = nh.advertise<rflysim_ros_pkg::Obj>("ue4_ros/obj", 10);
     marker_pub = nh.advertise<visualization_msgs::Marker>("rviz/obj", 10);
     

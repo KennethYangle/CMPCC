@@ -28,3 +28,9 @@ target_link_libraries(sim_balloon_node
   ${catkin_LIBRARIES}
   yaml-cpp
 )
+
+add_executable(path_finding_node
+  src/path_finding.cpp)
+target_link_libraries(path_finding_node
+  ${catkin_LIBRARIES}
+)

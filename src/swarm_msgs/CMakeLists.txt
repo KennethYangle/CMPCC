@@ -72,6 +72,8 @@ add_message_files(
   EntrancePose.msg
   FixedPoint.msg
   CenterPoints.msg
+  MassPoint.msg
+  MassPoints.msg
 )
 
 ## Generate services in the 'srv' folder

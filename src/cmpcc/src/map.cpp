@@ -8,6 +8,8 @@ namespace ft{
     Map::Map(){}
 
     void Map::setPathPts(const quadrotor_msgs::PiecewiseBezier::ConstPtr& msg){
+        pathRead = true;
+
         control_points.clear();
         theta_sample.clear();
         pos_sample.clear();
@@ -29,6 +31,7 @@ namespace ft{
             }
             control_points.push_back(piece_cpts);
         }
+        pathRead = false;
 
         Eigen::Vector3d thetaPoint;
         for (double theta=0; theta<thetaMax; theta+=0.001){
@@ -169,6 +172,9 @@ namespace ft{
     }
 
     void Map::getGlobalCommand(double t, Vector3d & position){
+        while(ros::ok() && pathRead)
+            ros::Duration(0.001).sleep();
+
         t = std::min(t, thetaMax) / 10;     // 保护不越界
 
         int idx = int(t);   // 位于第几段
@@ -179,6 +185,9 @@ namespace ft{
     }
 
     void Map::getGlobalCommand(double t, Vector3d & position, Vector3d & velocity){
+        while(ros::ok() && pathRead)
+            ros::Duration(0.001).sleep();
+
         t = std::min(t, thetaMax) / 10;     // 保护不越界
 
         int idx = int(t);   // 位于第几段
@@ -188,8 +197,10 @@ namespace ft{
         velocity = getBezierVel(t, control_points[idx]); 
     }
     
-    void Map::getGlobalCommand(double t, Vector3d & position, Vector3d & velocity, Vector3d & acceleration)
-    {   
+    void Map::getGlobalCommand(double t, Vector3d & position, Vector3d & velocity, Vector3d & acceleration){
+        while(ros::ok() && pathRead)
+            ros::Duration(0.001).sleep();
+
         t = std::min(t, thetaMax) / 10;     // 保护不越界
 
         int idx = int(t);   // 位于第几段
@@ -201,7 +212,11 @@ namespace ft{
     }
 
     double Map::getYaw(double t){
+        while(ros::ok() && pathRead)
+            ros::Duration(0.001).sleep();
+
         t = std::min(t, thetaMax) / 10;     // 保护不越界
+
         int idx = int(t);   // 位于第几段
         t -= idx;           // [0, 1)
 
