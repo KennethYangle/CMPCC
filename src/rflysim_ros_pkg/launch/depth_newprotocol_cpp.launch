@@ -1,0 +1,13 @@
+<launch>
+   <arg name="camera_id" default="depth" />
+   <arg name="port" default="9998" />
+   <node pkg="rflysim_ros_pkg" type="image_receive_newprotocol" name="depth_image_receive_newprotocol_$(arg camera_id)">
+        <param name="camera_id" value="$(arg camera_id)"/>
+        <param name="port" value="$(arg port)"/>
+        <param name="image_transport" value="compressed" />
+        <param name="type" value="depth"/>
+        <param name="frame_id" value="camera_depth_optical_frame"/>
+        <param name="encoding" value="16UC1"/>
+        <param name="topic_name" value="/camera/depth"/>
+   </node>
+</launch>

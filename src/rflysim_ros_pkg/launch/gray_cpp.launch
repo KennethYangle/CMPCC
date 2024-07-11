@@ -1,0 +1,13 @@
+<launch>
+   <arg name="camera_id" default="gray" />
+   <arg name="port" default="9997" />
+   <node pkg="rflysim_ros_pkg" type="image_receive" name="gray_image_receive_$(arg camera_id)" output="screen">
+        <param name="camera_id" value="$(arg camera_id)"/>
+        <param name="port" value="$(arg port)"/>
+        <param name="image_transport" value="compressed" />
+        <param name="type" value="gray"/>
+        <param name="frame_id" value="camera_infra1_optical_frame"/>
+        <param name="encoding" value="mono8"/>
+        <param name="topic_name" value="/camera/gray"/>
+   </node>
+</launch>

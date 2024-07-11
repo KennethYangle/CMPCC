@@ -27,11 +27,20 @@ int main(int argc, char* argv[])
     ros::NodeHandle nh("~");
     image_transport::ImageTransport it(nh);
     string camera_id, port_str;
+    string TYPE;
+    string ENCODING; 
+    string FRAME_ID;
+    string TOPIC_NAME;
     nh.param<std::string>("camera_id", camera_id, "left");
     nh.param<int>("port", PORT, 9999);
+    nh.param<std::string>("type", TYPE, "rgb");
+    nh.param<std::string>("encoding", ENCODING, "bgr8");
+    nh.param<std::string>("frame_id", FRAME_ID, "camera_color_optical_frame");
+    nh.param<std::string>("topic_name", TOPIC_NAME, "/camera/rgb");
     cout << "camera_id: " << camera_id << endl;
     cout << "port: " << PORT << endl;
-    image_transport::Publisher pub = it.advertise("/camera/"+camera_id, 1);
+    //image_transport::Publisher pub = it.advertise("/camera/"+camera_id, 1);
+    image_transport::Publisher pub = it.advertise(TOPIC_NAME, 1);
 
     struct sockaddr_in addr;
     socklen_t sockfd, addr_len = sizeof(struct sockaddr_in);
@@ -57,9 +66,11 @@ int main(int argc, char* argv[])
     }
  
     int imgFlag = 1234567890;
-    int fhead_size = 4*sizeof(int);
-    int img_head[4];
-    char data_total[600000];
+    //int fhead_size = 4*sizeof(int);
+    int fhead_size = 24;
+    //int img_head[4];
+    int img_head[6];
+    char data_total[900000];  //这个小了可能会出现段错误(核心已转储)的报错导致节点挂掉，所以这里由原先的600000改为900000
     Mat image;
 
     while (ros::ok) {
@@ -80,8 +91,21 @@ int main(int argc, char* argv[])
 
         if (recvd_size == imgLen) {
             // cout << "received image." << endl;
-            image = imdecode(Mat(1, recvd_size, CV_8UC1, data_total), IMREAD_COLOR);
-            sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
+            //image = imdecode(Mat(1, recvd_size, CV_8UC1, data_total), IMREAD_COLOR);
+            if(TYPE=="rgb")
+            {
+                image = imdecode(Mat(1, recvd_size, CV_8UC1, data_total), IMREAD_COLOR); 
+            }
+            if(TYPE=="gray")
+            {
+                image = imdecode(Mat(1, recvd_size, CV_8UC1, data_total), IMREAD_GRAYSCALE); 
+            }
+            if(TYPE=="depth")
+            {
+                image = imdecode(Mat(1, recvd_size, CV_8UC1, data_total), IMREAD_ANYDEPTH); 
+            }
+            //sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), "bgr8", image).toImageMsg();
+            sensor_msgs::ImagePtr msg = cv_bridge::CvImage(std_msgs::Header(), ENCODING, image).toImageMsg();
             pub.publish(msg);
             // imshow("image", image);
             // if (char(waitKey(1))=='q') { break; }

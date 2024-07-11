@@ -44,34 +44,39 @@ sleep 2s
 if [ $ISFLIGHT = 0 ]
 then
     # mavros
-    gnome-terminal --tab -t "mavros" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch offboard_pkg mavros_sim.launch use_pix:=${USE_PIX};exec bash"
+    gnome-terminal --tab -t "Mavros" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch offboard_pkg mavros_sim.launch use_pix:=${USE_PIX};exec bash"
     sleep 2s
 
     # RflySim 接口
-    gnome-terminal --tab -t "RflySim Interface" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch rflysim_ros_pkg obj.launch ip:=${UE4IP};exec bash"
+    gnome-terminal --tab -t "RflySim Obj interface" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch rflysim_ros_pkg obj.launch ip:=${UE4IP};exec bash"
     sleep 0.5s
+    gnome-terminal --tab -t "RflySim Image interface" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch rflysim_ros_pkg rgb_newprotocol_cpp.launch;exec bash"
 
     # 仿真气球运动
-    gnome-terminal --tab -t "sim_balloon_node" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun path sim_balloon_node;exec bash"
+    gnome-terminal --tab -t "Sim Balloon Motion" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun path sim_balloon_node;exec bash"
     sleep 0.5s
+
+    # 目标检测
+    gnome-terminal --tab -t "Detection in Sim" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch simulation det_sim.launch;exec bash"
+    sleep 2s
 else
     # mavros
-    gnome-terminal --tab -t "mavros" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch mavros px4.launch fcu_url:="/dev/ttyACM0:115200";exec bash"
+    gnome-terminal --tab -t "Mavros" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch mavros px4.launch fcu_url:="/dev/ttyACM0:115200";exec bash"
     sleep 2s
 fi
 
 # Rviz可视化，可选
-gnome-terminal --tab -t "rviz" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch cmpcc rviz_view.launch;exec bash"
+gnome-terminal --tab -t "Rviz" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch cmpcc rviz_view.launch;exec bash"
 sleep 3s
 
 # 路径、轨迹规划 + MPCC控制
-gnome-terminal --tab -t "path finding" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun path path_finding_node;exec bash"
+gnome-terminal --tab -t "Path Finding" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun path path_finding_node;exec bash"
 sleep 1s
 gnome-terminal --tab -t "MPCC" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch cmpcc fly.launch;exec bash"
 sleep 2s
 
 # mavros控制汇总
-gnome-terminal --tab -t "offboard" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun offboard_pkg main_node;exec bash"
+gnome-terminal --tab -t "Offboard Main Node" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun offboard_pkg main_node;exec bash"
 sleep 3s
 
 

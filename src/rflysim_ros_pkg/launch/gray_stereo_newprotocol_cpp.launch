@@ -1,0 +1,23 @@
+<launch>
+
+   <node pkg="rflysim_ros_pkg" type="image_receive_newprotocol" name="gray_image_receive_newprotocol_letf" output="screen">
+        <param name="camera_id" value="gray_left"/>
+        <param name="port" value="9997"/>
+        <param name="image_transport" value="compressed" />
+        <param name="type" value="gray"/>
+        <param name="frame_id" value="camera_infra1_optical_frame"/>
+        <param name="encoding" value="mono8"/>
+        <param name="topic_name" value="/camera/gray/left"/>
+   </node>
+
+
+   <node pkg="rflysim_ros_pkg" type="image_receive_newprotocol" name="gray_image_receive_newprotocol_right" output="screen">
+        <param name="camera_id" value="gray_right"/>
+        <param name="port" value="9996"/>
+        <param name="image_transport" value="compressed" />
+        <param name="type" value="gray"/>
+        <param name="frame_id" value="camera_infra2_optical_frame"/>
+        <param name="encoding" value="mono8"/>
+        <param name="topic_name" value="/camera/gray/right"/>
+   </node>
+</launch>

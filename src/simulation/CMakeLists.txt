@@ -1,8 +1,8 @@
-cmake_minimum_required(VERSION 2.8.3)
-project(rflysim_ros_pkg)
+cmake_minimum_required(VERSION 2.8...3.27)
+project(simulation)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11)
+# add_compile_options(-std=c++11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -10,15 +10,10 @@ add_compile_options(-std=c++11)
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs
   mavros_msgs
-  sensor_msgs
   roscpp
   rospy
   std_msgs
-  cv_bridge
-  image_transport
-  message_generation
 )
-find_package(OpenCV)
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -59,11 +54,6 @@ find_package(OpenCV)
 #   Message1.msg
 #   Message2.msg
 # )
-add_message_files(
-  FILES
-  Obj.msg
-  # Message2.msg
-)
 
 ## Generate services in the 'srv' folder
 # add_service_files(
@@ -84,14 +74,6 @@ add_message_files(
 #   DEPENDENCIES
 #   geometry_msgs#   mavros_msgs#   std_msgs
 # )
-generate_messages(
-  DEPENDENCIES
-  geometry_msgs#   mavros_msgs#   std_msgs
-  std_msgs
-  sensor_msgs
-  # UInt64
-  # Point
-)
 
 ################################################
 ## Declare ROS dynamic reconfigure parameters ##
@@ -123,9 +105,8 @@ generate_messages(
 ## CATKIN_DEPENDS: catkin_packages dependent projects also need
 ## DEPENDS: system dependencies of this project that dependent projects also need
 catkin_package(
-  CATKIN_DEPENDS message_runtime
 #  INCLUDE_DIRS include
-#  LIBRARIES rflysim_ros_pkg
+#  LIBRARIES simulation
 #  CATKIN_DEPENDS geometry_msgs mavros_msgs roscpp rospy std_msgs
 #  DEPENDS system_lib
 )
@@ -140,11 +121,10 @@ include_directories(
 # include
   ${catkin_INCLUDE_DIRS}
 )
-include_directories(include ${OpenCV_INCLUDE_DIRS})
 
 ## Declare a C++ library
 # add_library(${PROJECT_NAME}
-#   src/${PROJECT_NAME}/rflysim_ros_pkg.cpp
+#   src/${PROJECT_NAME}/simulation.cpp
 # )
 
 ## Add cmake target dependencies of the library
@@ -155,10 +135,7 @@ include_directories(include ${OpenCV_INCLUDE_DIRS})
 ## Declare a C++ executable
 ## With catkin_make all packages are built within a single CMake context
 ## The recommended prefix ensures that target names across packages don't collide
-# add_executable(${PROJECT_NAME}_node src/rflysim_ros_pkg_node.cpp)
-add_executable(image_receive src/image_receive.cpp)
-
-add_executable(image_receive_newprotocol src/image_receive_newprotocol.cpp)
+# add_executable(${PROJECT_NAME}_node src/simulation_node.cpp)
 
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
@@ -174,9 +151,6 @@ add_executable(image_receive_newprotocol src/image_receive_newprotocol.cpp)
 # target_link_libraries(${PROJECT_NAME}_node
 #   ${catkin_LIBRARIES}
 # )
-target_link_libraries(image_receive ${catkin_LIBRARIES})
-
-target_link_libraries(image_receive_newprotocol ${catkin_LIBRARIES})
 
 #############
 ## Install ##
@@ -192,18 +166,11 @@ target_link_libraries(image_receive_newprotocol ${catkin_LIBRARIES})
 #   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
 
-## Mark executables for installation
-## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_executables.html
-# install(TARGETS ${PROJECT_NAME}_node
-#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-# )
-
-## Mark libraries for installation
-## See http://docs.ros.org/melodic/api/catkin/html/howto/format1/building_libraries.html
-# install(TARGETS ${PROJECT_NAME}
+## Mark executables and/or libraries for installation
+# install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}_node
 #   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
 #   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-#   RUNTIME DESTINATION ${CATKIN_GLOBAL_BIN_DESTINATION}
+#   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
 
 ## Mark cpp header files for installation
@@ -225,7 +192,7 @@ target_link_libraries(image_receive_newprotocol ${catkin_LIBRARIES})
 #############
 
 ## Add gtest based cpp test target and link libraries
-# catkin_add_gtest(${PROJECT_NAME}-test test/test_rflysim_ros_pkg.cpp)
+# catkin_add_gtest(${PROJECT_NAME}-test test/test_simulation.cpp)
 # if(TARGET ${PROJECT_NAME}-test)
 #   target_link_libraries(${PROJECT_NAME}-test ${PROJECT_NAME})
 # endif()

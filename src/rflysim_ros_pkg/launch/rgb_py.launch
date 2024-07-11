@@ -1,0 +1,13 @@
+<launch>
+   
+   <node pkg="rflysim_ros_pkg" type="image_receive.py" name="rgb_receive" output="screen">
+     <param name="port" value="9999" />
+     <!-- IP地址为NX/接收端的局域网IP -->
+     <param name="IP" value="192.168.110.145" />
+     <param name="pub_topic_name" value="/rgb_image_topic" />
+     <param name="type" value="rgb"/>
+     <param name="frame_id" value="camera_color_optical_frame"/>
+     <param name="encoding" value="bgr8"/>
+   </node>
+
+</launch>

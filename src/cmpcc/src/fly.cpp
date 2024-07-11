@@ -90,7 +90,7 @@ void mpc_callback(const ros::TimerEvent& event){
         simSolver.initStatus = true;
         mpcInit = false;
         if( simSolver.solveMpcQp(stateMpc) ){
-            ROS_ERROR("come on! Your disturbance too fierce!");
+            ROS_ERROR("MPCQP Solver failure!");
             // ros::shutdown();
         }
         else{

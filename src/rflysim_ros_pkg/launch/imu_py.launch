@@ -1,0 +1,12 @@
+<launch>
+
+   <node pkg="rflysim_ros_pkg" type="imu_receive.py" name="imu_receive" output="screen" >
+     <param name="pub_topic_name" value="/imu" />
+     <!-- IP地址为NX/接收端的局域网IP -->
+     <param name="IPpart1" value="192" />
+     <param name="IPpart2" value="168" />
+     <param name="IPpart3" value="1" />
+     <param name="IPpart4" value="6" />
+     <param name="port" value="31000" />
+   </node>
+</launch>

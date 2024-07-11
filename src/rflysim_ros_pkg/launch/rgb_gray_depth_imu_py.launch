@@ -1,0 +1,46 @@
+<launch>
+   
+   <node pkg="rflysim_ros_pkg" type="image_receive.py" name="rgb_receive" output="screen">
+     <param name="port" value="9999" />
+     <!-- IP地址为NX/接收端的局域网IP -->
+     <param name="IP" value="192.168.110.145" />
+     <param name="pub_topic_name" value="/rgb_image_topic" />
+     <param name="type" value="rgb"/>
+     <param name="frame_id" value="camera_color_optical_frame"/>
+     <param name="encoding" value="bgr8"/>
+   </node>
+
+   
+   <node pkg="rflysim_ros_pkg" type="image_receive.py" name="gray_receive" output="screen" launch-prefix="gnome-terminal --tab --">
+     <param name="port" value="9997" />
+     <!-- IP地址为NX/接收端的局域网IP -->
+     <param name="IP" value="192.168.110.145" />
+     <param name="pub_topic_name" value="/gray_image_topic" />
+     <param name="type" value="gray"/>
+     <param name="frame_id" value="camera_infra1_optical_frame"/>
+     <param name="encoding" value="mono8"/>
+   </node>
+
+
+   <node pkg="rflysim_ros_pkg" type="image_receive.py" name="depth_receive" output="screen" launch-prefix="gnome-terminal --tab --">
+     <param name="port" value="9998" />
+     <!-- IP地址为NX/接收端的局域网IP -->
+     <param name="IP" value="192.168.110.145" />
+     <param name="pub_topic_name" value="/depth_image_topic" />
+     <param name="type" value="depth"/>
+     <param name="frame_id" value="camera_depth_optical_frame"/>
+     <param name="encoding" value="16UC1"/>
+   </node>
+
+
+   <node pkg="rflysim_ros_pkg" type="imu_receive.py" name="imu_receive" output="screen" launch-prefix="gnome-terminal --tab --">
+     <param name="pub_topic_name" value="/imu" />
+     <!-- IP地址为NX/接收端的局域网IP -->
+     <param name="IPpart1" value="192" />
+     <param name="IPpart2" value="168" />
+     <param name="IPpart3" value="10" />
+     <param name="IPpart4" value="116" />
+     <param name="port" value="31000" />
+     
+   </node>
+</launch>

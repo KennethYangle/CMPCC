@@ -1,0 +1,10 @@
+camera:
+  img_width: 640
+  img_height: 480
+  img_f: 320
+  img_distance: 50
+
+Debug:
+  is_show_image: false # main.cpp
+  is_show_rgb: true    # img_pub.py
+  is_show_hsv: false
