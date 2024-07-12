@@ -42,16 +42,10 @@ def matrix(B, C):
 
 class Utils(object):
     def __init__(self, params):
-        self.WIDTH = params["WIDTH"] #simulation 720  Real_flight:640
-        self.HEIGHT = params["HEIGHT"] #simulation 405  Real_flight:405
-
-        self.circlex = None
-        self.circley = None
-        self.w, self.h = self.WIDTH, self.HEIGHT
+        self.w = params["WIDTH"] #simulation 720  Real_flight:640
+        self.h = params["HEIGHT"] #simulation 405  Real_flight:405
         self.u0 = self.w/2.
         self.v0 = self.h*0.42 # self.h*0.43 # self.h/2
-        self.x0 = self.u0
-        self.y0 = self.v0
         self.cnt = 0
         self.cnt_WP = 1
         self.v_norm_d = 10
@@ -237,7 +231,7 @@ class Utils(object):
         a_d = self.sat(1.0 * (v_d - pos_info["mav_vel"]), 6.)
         a_d[2] = self.sat(a_d[2], 2.)
 
-        yaw_rate = 0.0025*(self.u0 - pos_i[0])
+        yaw_rate = 1.5*(self.u0 - pos_i[0])/self.u0
         
         # print("n_co:{}, n_bo:{}, n_eo:{}, v_1:{}, v_2:{}, v_d:{}".format(n_co, n_bo, n_eo, v_1, v_2, v_d))
         return [a_d[0], a_d[1], a_d[2], yaw_rate]

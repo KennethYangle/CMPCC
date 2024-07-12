@@ -15,12 +15,13 @@
 mavros_msgs::State current_state;
 geometry_msgs::PoseStamped local_pos, ref_pose;
 geometry_msgs::TwistStamped local_vel;
-quadrotor_msgs::PositionCommand mpcc_cmd;
+quadrotor_msgs::PositionCommand mpcc_cmd, attack_cmd;
 double mav_yaw = 0.;
-ros::Subscriber state_sub, local_pos_sub, local_vel_sub, mpcc_cmd_sub;
+ros::Subscriber state_sub, local_pos_sub, local_vel_sub, mpcc_cmd_sub, attack_cmd_sub;
 ros::Publisher local_pos_pub, local_pva_pub, predict_pos_pub, ref_pos_pub;
 ros::ServiceClient arming_client, set_mode_client;
 Utils utils;
+double w, mpcc_ax, mpcc_ay, mpcc_az, mpcc_yr, att_ax, att_ay, att_az, att_yr;
 
 void state_cb(const mavros_msgs::State::ConstPtr& msg){
     current_state = *msg;
@@ -48,9 +49,12 @@ void mpcc_cmd_cb(const quadrotor_msgs::PositionCommand::ConstPtr& msg){
     mpcc_cmd = *msg;
     mpcc_cmd.yaw_dot = utils.yaw_control(mpcc_cmd.yaw, mav_yaw, 1.0, 1.0);
 }
+void attack_cmd_cb(const quadrotor_msgs::PositionCommand::ConstPtr& msg){
+    attack_cmd = *msg;
+}
 
 
-void local_acc_target(const double ax, const double ay, const double az)
+void local_acc_target(const double ax, const double ay, const double az, const double yr=0.)
 {
     mavros_msgs::PositionTarget pva_target;
     pva_target.coordinate_frame = 1;
@@ -64,7 +68,7 @@ void local_acc_target(const double ax, const double ay, const double az)
                 pva_target.IGNORE_VX + pva_target.IGNORE_VY + pva_target.IGNORE_VZ+
                 pva_target.IGNORE_PX + pva_target.IGNORE_PY + pva_target.IGNORE_PZ ;
 
-    pva_target.yaw_rate = 0;
+    pva_target.yaw_rate = yr;
 
     local_pva_pub.publish(pva_target);
 }
@@ -224,6 +228,7 @@ int main(int argc, char **argv)
     local_pos_sub = nh.subscribe<geometry_msgs::PoseStamped>("mavros/local_position/pose", 10, local_pos_cb);
     local_vel_sub = nh.subscribe<geometry_msgs::TwistStamped>("mavros/local_position/velocity_local", 10, local_vel_cb);
     mpcc_cmd_sub = nh.subscribe<quadrotor_msgs::PositionCommand>("/position_cmd",2, mpcc_cmd_cb);
+    attack_cmd_sub = nh.subscribe<quadrotor_msgs::PositionCommand>("/attack_cmd",2, attack_cmd_cb);
     local_pos_pub = nh.advertise<geometry_msgs::PoseStamped>("mavros/setpoint_position/local", 10);
     local_pva_pub = nh.advertise<mavros_msgs::PositionTarget>("mavros/setpoint_raw/local",10);
 
@@ -241,9 +246,11 @@ int main(int argc, char **argv)
 
     while (ros::ok())
     {
-        local_pva_target(mpcc_cmd.position.x, mpcc_cmd.position.y, mpcc_cmd.position.z, 
-                mpcc_cmd.velocity.x, mpcc_cmd.velocity.y, mpcc_cmd.velocity.z,
-                mpcc_cmd.acceleration.x, mpcc_cmd.acceleration.y, mpcc_cmd.acceleration.z, mpcc_cmd.yaw_dot);
+        // local_pva_target(mpcc_cmd.position.x, mpcc_cmd.position.y, mpcc_cmd.position.z, mpcc_cmd.velocity.x, mpcc_cmd.velocity.y, mpcc_cmd.velocity.z, mpcc_cmd.acceleration.x, mpcc_cmd.acceleration.y, mpcc_cmd.acceleration.z, mpcc_cmd.yaw_dot);
+        w = attack_cmd.weight;
+        mpcc_ax = mpcc_cmd.acceleration.x;  mpcc_ay = mpcc_cmd.acceleration.y;  mpcc_az = mpcc_cmd.acceleration.z;  mpcc_yr = mpcc_cmd.yaw_dot;
+        att_ax = attack_cmd.acceleration.x;  att_ay = attack_cmd.acceleration.z;  att_az = attack_cmd.acceleration.z;  att_yr = attack_cmd.yaw_dot;
+        local_acc_target((1-w)*mpcc_ax + w*att_ax, (1-w)*mpcc_ay + w*att_ay, (1-w)*mpcc_az + w*att_az, (1-w)*mpcc_yr + w*att_yr);
 
         ros::spinOnce();
         rate.sleep();
