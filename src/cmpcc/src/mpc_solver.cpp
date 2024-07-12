@@ -9,7 +9,7 @@ using namespace std;
 namespace ft{
     MpcSolver::MpcSolver()
     {
-        std::string path = ros::package::getPath("cmpcc")+"/config/mpcParameters.yaml";
+        std::string path = ros::package::getPath("params") + "/mpcParameters.yaml";
         YAML::Node node = YAML::LoadFile(path);
         horizon = node["horizon"].as<int>();
         corridorConstrains = node["corridorConstrains"].as<int>();

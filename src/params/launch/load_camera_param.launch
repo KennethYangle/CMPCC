@@ -1,0 +1,4 @@
+<launch>
+	<arg name="global_file" default="global_param.yaml" />
+	<rosparam command="load" file="$(find params)/$(arg global_file)" />
+</launch>

@@ -1,0 +1,5 @@
+Rviz_path: "3d.rviz"
+MPCC_path: "mpcParameters.yaml"
+Sim_Balloon_path: "balloon_motion.yaml"
+Sim_Camera_path: "camera_params_sim.yaml"
+Flight_Camera_path: "camera_params_csi.yaml"

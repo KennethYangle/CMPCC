@@ -43,6 +43,9 @@ sleep 2s
 
 if [ $ISFLIGHT = 0 ]
 then
+    # 载入相机参数
+    gnome-terminal --tab -t "Load Camera Param" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch params load_camera_param.launch global_file:=camera_params_sim.yaml;exec bash"
+
     # mavros
     gnome-terminal --tab -t "Mavros" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch offboard_pkg mavros_sim.launch use_pix:=${USE_PIX};exec bash"
     sleep 2s
@@ -57,23 +60,33 @@ then
     sleep 0.5s
 
     # 目标检测
-    gnome-terminal --tab -t "Detection in Sim" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch simulation det_sim.launch;exec bash"
-    sleep 2s
+    gnome-terminal --tab -t "Detection in Sim" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun simulation img_pub.py;exec bash"
+    sleep 1s
 else
+    # 载入相机参数
+    gnome-terminal --tab -t "Load Camera Param" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch params load_camera_param.launch global_file:=camera_params_csi.yaml;exec bash"
+
     # mavros
     gnome-terminal --tab -t "Mavros" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch mavros px4.launch fcu_url:="/dev/ttyACM0:115200";exec bash"
     sleep 2s
+
+    # 目标检测
+
 fi
 
 # Rviz可视化，可选
 gnome-terminal --tab -t "Rviz" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch cmpcc rviz_view.launch;exec bash"
-sleep 3s
+sleep 2s
 
 # 路径、轨迹规划 + MPCC控制
 gnome-terminal --tab -t "Path Finding" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun path path_finding_node;exec bash"
 sleep 1s
 gnome-terminal --tab -t "MPCC" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch cmpcc fly.launch;exec bash"
 sleep 2s
+
+# 拦截控制
+gnome-terminal --tab -t "Attack" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun offboard_pkg attack.py;exec bash"
+sleep 1s
 
 # mavros控制汇总
 gnome-terminal --tab -t "Offboard Main Node" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun offboard_pkg main_node;exec bash"

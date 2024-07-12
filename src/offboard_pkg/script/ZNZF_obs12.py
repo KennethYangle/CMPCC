@@ -20,7 +20,7 @@ from mavros_msgs.msg import Thrust
 
 from sensor_msgs.msg import NavSatFix
 
-from utils_obs import Utils
+from utils_att import Utils
 from Queue import Queue
 
 from math import atan2, pi
@@ -476,7 +476,7 @@ if __name__=="__main__":
         u = Utils(setting["Simulation"])
 
 
-    rospy.init_node('offb_node', anonymous=True)
+    rospy.init_node('attack_node', anonymous=True)
     mav_id = rospy.get_param("~mav_id")
     print("mav_id:", mav_id)
     if mav_id == 1:

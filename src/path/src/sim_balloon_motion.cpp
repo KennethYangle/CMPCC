@@ -23,7 +23,7 @@ struct balloon {
 class SimBalloon {
 public:
     SimBalloon() {
-        std::string path = ros::package::getPath("path") + "/config/balloon_motion.yaml";
+        std::string path = ros::package::getPath("params") + "/balloon_motion.yaml";
         YAML::Node node = YAML::LoadFile(path);
 
         for (const YAML::Node& balloon_node : node["balloons"]) {

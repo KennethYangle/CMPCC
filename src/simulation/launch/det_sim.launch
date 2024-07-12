@@ -1,4 +1,4 @@
 <launch>
-    <rosparam file="$(find simulation)/config/camera_params_sim.yaml" command="load" />
+    <rosparam file="$(find params)/camera_params_sim.yaml" command="load" />
     <node name="img_pub" pkg="simulation" type="img_pub.py"/>
 </launch>
