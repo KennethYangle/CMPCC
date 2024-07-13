@@ -20,20 +20,26 @@ double distance(const Eigen::Vector3d &p1, const Eigen::Vector3d &p2) {
     return (p1 - p2).norm();
 }
 
-double calculateTotalDistance(const std::vector<Balloon> &path, const Eigen::Vector3d &currentPosition, double mavVel) {
+std::pair<std::vector<Balloon>, double> calculateTotalDistance(const std::vector<Balloon> &path, const Eigen::Vector3d &currentPosition, double mavVel) {
+    std::vector<Balloon> pathAfterMotion;
     double totalDistance = 0;
-    double time = 0;
     Eigen::Vector3d currentPos = currentPosition;
+    double time = distance(currentPos, path[0].position) / mavVel;
 
     for (const auto &balloon : path) {
         Eigen::Vector3d nextPosition = balloon.position + balloon.velocity * time;
         double dist = distance(currentPos, nextPosition);
+
+        Balloon balloonAfterMotion;
+        balloonAfterMotion.position = nextPosition;
+        balloonAfterMotion.velocity = balloon.velocity;
+        pathAfterMotion.push_back(balloonAfterMotion);
         totalDistance += dist;
         currentPos = nextPosition;
         time += dist / mavVel;
     }
 
-    return totalDistance;
+    return {pathAfterMotion, totalDistance};
 }
 
 std::pair<std::vector<Balloon>, double> findShortestPath(const Eigen::Vector3d &currentPosition, std::vector<Balloon> &balloons, double mavVel) {
@@ -43,10 +49,11 @@ std::pair<std::vector<Balloon>, double> findShortestPath(const Eigen::Vector3d &
     std::sort(balloons.begin(), balloons.end(), [](const Balloon &a, const Balloon &b) { return a.position.norm() < b.position.norm(); });
 
     do {
-        double totalDistance = calculateTotalDistance(balloons, currentPosition, mavVel);
+        auto result = calculateTotalDistance(balloons, currentPosition, mavVel);
+        double totalDistance = result.second;
         if (totalDistance < shortestDistance) {
             shortestDistance = totalDistance;
-            shortestPath = balloons;
+            shortestPath = result.first;
         }
     } while (std::next_permutation(balloons.begin(), balloons.end(), [](const Balloon &a, const Balloon &b) { return a.position.norm() < b.position.norm(); }));
 
@@ -57,7 +64,7 @@ class ShortestPathNode {
 public:
     ShortestPathNode() {
         path_T = 0.2;
-        mav_vel_ = 1.0;  // 平均访问速度
+        mav_vel_ = 3.0;  // 平均访问速度
         current_position_ = Eigen::Vector3d(0.0, 0.0, 0.0);
         current_velocity_ = Eigen::Vector3d(0.0, 0.0, 0.0);
 
