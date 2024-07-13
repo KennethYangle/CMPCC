@@ -8,6 +8,8 @@
 #include "corridor.h"
 #include "bezier_base.h"
 #include <quadrotor_msgs/PiecewiseBezier.h>
+#include <mutex>
+#include <condition_variable>
 
 namespace ft {
 //    class Map
@@ -15,13 +17,16 @@ namespace ft {
     private:
         int num_order, num_segment, traj_order, K_max;
         double s_step, global_traj_time;
-        bool pathRead;
         std::vector<int> K_data_my;
         std::vector<double> range, K_data;
         std::vector<double> theta_sample;
         std::vector<Eigen::Vector3d> pos_sample;
         Eigen::MatrixXd coef, time, time_acc, a_data, b_data, s_data;
         std::vector<Eigen::MatrixXd> control_points;
+
+        std::mutex mtx;
+        std::condition_variable cv;
+        bool can_modify = true; // 控制标志，表示是否可以修改 control_points
 
         Bernstein bezier_basis = Bernstein(3.0);
         

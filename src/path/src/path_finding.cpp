@@ -16,18 +16,33 @@ struct Balloon {
     Eigen::Vector3d velocity;
 };
 
+double calculateMeetingTime(const Eigen::Vector3d &Pc, const double &V, const Eigen::Vector3d &Pb, const Eigen::Vector3d &Vb) {
+    Eigen::Vector3d dP = Pb - Pc;
+    double a = Vb.dot(Vb) - V*V;
+    double b = 2 * dP.dot(Vb);
+    double c = dP.dot(dP);
+
+    double Delta = b*b - 4*a*c;
+    double t = (-b - sqrt(Delta)) / a / 2;
+    return t;
+}
+
+
 double distance(const Eigen::Vector3d &p1, const Eigen::Vector3d &p2) {
     return (p1 - p2).norm();
 }
 
 std::pair<std::vector<Balloon>, double> calculateTotalDistance(const std::vector<Balloon> &path, const Eigen::Vector3d &currentPosition, double mavVel) {
-    std::vector<Balloon> pathAfterMotion;
+    double time = 0, time_stash = 0;
     double totalDistance = 0;
+    std::vector<Balloon> pathAfterMotion;
     Eigen::Vector3d currentPos = currentPosition;
-    double time = distance(currentPos, path[0].position) / mavVel;
 
     for (const auto &balloon : path) {
-        Eigen::Vector3d nextPosition = balloon.position + balloon.velocity * time;
+        Eigen::Vector3d nextPosition = balloon.position + balloon.velocity * time_stash;
+        time = calculateMeetingTime(currentPos, mavVel, nextPosition, balloon.velocity);
+        // std::cout << time << std::endl;
+        nextPosition += balloon.velocity * time;
         double dist = distance(currentPos, nextPosition);
 
         Balloon balloonAfterMotion;
@@ -36,7 +51,7 @@ std::pair<std::vector<Balloon>, double> calculateTotalDistance(const std::vector
         pathAfterMotion.push_back(balloonAfterMotion);
         totalDistance += dist;
         currentPos = nextPosition;
-        time += dist / mavVel;
+        time_stash += time;
     }
 
     return {pathAfterMotion, totalDistance};

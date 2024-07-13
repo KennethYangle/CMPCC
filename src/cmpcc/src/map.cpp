@@ -8,30 +8,34 @@ namespace ft{
     Map::Map(){}
 
     void Map::setPathPts(const quadrotor_msgs::PiecewiseBezier::ConstPtr& msg){
-        pathRead = true;
+        {
+            std::unique_lock<std::mutex> lock(mtx);
+            // 等待直到 can_modify 为 true
+            cv.wait(lock, [this]{ return can_modify; });
 
-        control_points.clear();
-        theta_sample.clear();
-        pos_sample.clear();
+            control_points.clear();
+            theta_sample.clear();
+            pos_sample.clear();
 
-        num_order = msg->num_order;
-        num_segment = msg->num_segment;
-        K_data_my = msg->K;
-        K_max = msg->K_max;
-        thetaMax = num_segment * 10.0;
+            num_order = msg->num_order;
+            num_segment = msg->num_segment;
+            K_data_my = msg->K;
+            K_max = msg->K_max;
+            thetaMax = num_segment * 10.0;
 
-        int idx = 0;
-        for (int i=0; i<num_segment; i++) {
-            Eigen::MatrixXd piece_cpts = MatrixXd::Zero(K_max, 3);
-            for (int j=0; j<K_data_my[i]; j++) {
-                piece_cpts(j, 0) = msg->pts[idx].x;
-                piece_cpts(j, 1) = msg->pts[idx].y;
-                piece_cpts(j, 2) = msg->pts[idx].z;
-                idx++;
+            int idx = 0;
+            for (int i=0; i<num_segment; i++) {
+                Eigen::MatrixXd piece_cpts = MatrixXd::Zero(K_max, 3);
+                for (int j=0; j<K_data_my[i]; j++) {
+                    piece_cpts(j, 0) = msg->pts[idx].x;
+                    piece_cpts(j, 1) = msg->pts[idx].y;
+                    piece_cpts(j, 2) = msg->pts[idx].z;
+                    idx++;
+                }
+                control_points.push_back(piece_cpts);
             }
-            control_points.push_back(piece_cpts);
         }
-        pathRead = false;
+        can_modify = false;
 
         Eigen::Vector3d thetaPoint;
         for (double theta=0; theta<thetaMax; theta+=0.001){
@@ -172,55 +176,64 @@ namespace ft{
     }
 
     void Map::getGlobalCommand(double t, Vector3d & position){
-        while(ros::ok() && pathRead)
-            ros::Duration(0.001).sleep();
-
         t = std::min(t, thetaMax) / 10;     // 保护不越界
 
         int idx = int(t);   // 位于第几段
         t -= idx;           // [0, 1)
         // cout<< t << endl;
 
-        position = getBezierPos(t, control_points[idx]);
+        {
+            std::lock_guard<std::mutex> lock(mtx);
+            position = getBezierPos(t, control_points[idx]);
+        }
+        can_modify = true;
+        cv.notify_all(); // 通知所有等待的线程
     }
 
     void Map::getGlobalCommand(double t, Vector3d & position, Vector3d & velocity){
-        while(ros::ok() && pathRead)
-            ros::Duration(0.001).sleep();
-
         t = std::min(t, thetaMax) / 10;     // 保护不越界
 
         int idx = int(t);   // 位于第几段
         t -= idx;           // [0, 1)
 
-        position = getBezierPos(t, control_points[idx]);
-        velocity = getBezierVel(t, control_points[idx]); 
+        {
+            std::lock_guard<std::mutex> lock(mtx);
+            position = getBezierPos(t, control_points[idx]);
+            velocity = getBezierVel(t, control_points[idx]); 
+        }
+        can_modify = true;
+        cv.notify_all(); // 通知所有等待的线程
     }
     
     void Map::getGlobalCommand(double t, Vector3d & position, Vector3d & velocity, Vector3d & acceleration){
-        while(ros::ok() && pathRead)
-            ros::Duration(0.001).sleep();
-
         t = std::min(t, thetaMax) / 10;     // 保护不越界
 
         int idx = int(t);   // 位于第几段
         t -= idx;           // [0, 1)
 
-        position = getBezierPos(t, control_points[idx]);
-        velocity = getBezierVel(t, control_points[idx]);
-        acceleration = getBezierAcc(t, control_points[idx]);
+        {
+            std::lock_guard<std::mutex> lock(mtx);
+            position = getBezierPos(t, control_points[idx]);
+            velocity = getBezierVel(t, control_points[idx]);
+            acceleration = getBezierAcc(t, control_points[idx]);
+        }
+        can_modify = true;
+        cv.notify_all(); // 通知所有等待的线程
     }
 
     double Map::getYaw(double t){
-        while(ros::ok() && pathRead)
-            ros::Duration(0.001).sleep();
-
         t = std::min(t, thetaMax) / 10;     // 保护不越界
 
         int idx = int(t);   // 位于第几段
         t -= idx;           // [0, 1)
+        Vector3d velocity;
 
-        Vector3d velocity = getBezierVel(t, control_points[idx]); 
+        {
+            std::lock_guard<std::mutex> lock(mtx);
+            velocity = getBezierVel(t, control_points[idx]); 
+        }
+        can_modify = true;
+        cv.notify_all(); // 通知所有等待的线程
         return std::atan2(velocity[1], velocity[0]);
     }
 
