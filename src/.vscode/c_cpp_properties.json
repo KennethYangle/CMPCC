@@ -15,7 +15,8 @@
                 "${workspaceFolder}/uav_simulator/so3_quadrotor/include/**",
                 "/usr/include/**",
                 "/usr/local/include/**",
-                "${workspaceFolder}/offboard_pkg/include"
+                "${workspaceFolder}/offboard_pkg/include",
+                "${workspaceFolder}/../matplotlib"
             ],
             "name": "ROS",
             "intelliSenseMode": "gcc-x64",
