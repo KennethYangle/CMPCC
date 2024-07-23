@@ -41,49 +41,31 @@ public:
         auto [t1, t2, T, case_idx] = compute_times();
 
         std::vector<double> t_all, x_all, v_all, u_all;
+        int num_points = 100;
 
-        auto add_phase = [&](double t_start, double t_end, auto x_func, auto v_func, auto u_func) {
-            int num_points = 100;
-            std::vector<double> t_phase(num_points), x_phase(num_points), v_phase(num_points), u_phase(num_points);
-            for (int i = 0; i < num_points; ++i) {
-                double t = t_start + (t_end - t_start) * i / (num_points - 1);
-                t_phase[i] = t;
-                x_phase[i] = x_func(t);
-                v_phase[i] = v_func(t);
-                u_phase[i] = u_func(t);
-            }
-            t_all.insert(t_all.end(), t_phase.begin(), t_phase.end());
-            x_all.insert(x_all.end(), x_phase.begin(), x_phase.end());
-            v_all.insert(v_all.end(), v_phase.begin(), v_phase.end());
-            u_all.insert(u_all.end(), u_phase.begin(), u_phase.end());
-        };
+        // Phase 1, [0, t1]
+        for (int i = 0; i < num_points; ++i) {
+            t_all.push_back(t1 * i / (num_points - 1));
+            u_all.push_back( case_idx==0?umax:-umin );
+        }
+        // Phase 2, [t1, t2]
+        for (int i = 0; i < num_points; ++i) {
+            t_all.push_back(t1 + (t2 - t1) * i / (num_points - 1));
+            u_all.push_back( 0 );
+        }
+        // Phase 3, [t2, T]
+        for (int i = 0; i < num_points; ++i) {
+            t_all.push_back(t2 + (T - t2) * i / (num_points - 1));
+            u_all.push_back( case_idx==0?-umin:umax );
+        }
 
-        if (case_idx == 0) {
-            add_phase(0, t1,
-                [&](double t) { return x0 + v0 * t + 0.5 * umax * t * t; },
-                [&](double t) { return v0 + umax * t; },
-                [&](double) { return umax; });
-            add_phase(t1, t2,
-                [&](double t) { return x0 + v0 * t1 + 0.5 * umax * t1 * t1 + (v0 + umax * t1) * (t - t1); },
-                [&](double) { return v0 + umax * t1; },
-                [&](double) { return 0; });
-            add_phase(t2, T,
-                [&](double t) { return xT - vT * (T - t) - 0.5 * umin * (T - t) * (T - t); },
-                [&](double t) { return vT + umin * (T - t); },
-                [&](double) { return -umin; });
-        } else if (case_idx == 1) {
-            add_phase(0, t1,
-                [&](double t) { return x0 + v0 * t - 0.5 * umin * t * t; },
-                [&](double t) { return v0 - umin * t; },
-                [&](double) { return -umin; });
-            add_phase(t1, t2,
-                [&](double t) { return x0 + v0 * t1 - 0.5 * umin * t1 * t1 + (v0 - umin * t1) * (t - t1); },
-                [&](double) { return v0 - umin * t1; },
-                [&](double) { return 0; });
-            add_phase(t2, T,
-                [&](double t) { return xT - vT * (T - t) + 0.5 * umax * (T - t) * (T - t); },
-                [&](double t) { return vT - umax * (T - t); },
-                [&](double) { return umax; });
+        // calc position and velocity
+        x_all.push_back(x0);
+        v_all.push_back(v0);
+        for (int i = 1; i < t_all.size(); ++i) {
+            double dt = t_all[i] - t_all[i-1];
+            v_all.push_back(v_all[i-1] + u_all[i-1] * dt);
+            x_all.push_back(x_all[i-1] + v_all[i-1] * dt + 0.5 * u_all[i-1] * dt * dt);
         }
 
         plt::figure_size(1200, 900);
@@ -194,6 +176,7 @@ double find_alpha(TimeOptimalPMM& pmm, double T_target, double tol = 1e-3, int m
 int main() {
     try {
         // Initial conditions for x, y, z axes
+        // x0, v0, xT, vT, umax, umin, vmax, vmin
         TimeOptimalPMM pmm_x(0, 0, -8, 3, 12, 12, 7.5, 7.5);
         TimeOptimalPMM pmm_y(0, 0, 7, 6, 12, 12, 7.5, 7.5);
         TimeOptimalPMM pmm_z(0, 0, 2, 0, 2.5, 15, 5, 5);

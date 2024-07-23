@@ -58,6 +58,8 @@ add_message_files(
   Pipeunit.msg
   Pipeline.msg
   PiecewiseBezier.msg
+  TimeOptimalPMMParam.msg
+  TimeOptimalPMMPieces.msg
   Waypoint.msg
   BoundingBox.msg
   BoundingBoxes.msg
