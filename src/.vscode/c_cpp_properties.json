@@ -16,6 +16,7 @@
                 "/usr/include/**",
                 "/usr/local/include/**",
                 "${workspaceFolder}/offboard_pkg/include",
+                "${workspaceFolder}/path/include",
                 "${workspaceFolder}/../matplotlib"
             ],
             "name": "ROS",

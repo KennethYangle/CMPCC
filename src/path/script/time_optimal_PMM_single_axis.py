@@ -78,6 +78,7 @@ class TimeOptimalPMM:
         if best_times is None:
             raise ValueError("No valid time solution found for the given conditions.")
         
+        print(best_times)
         return best_times
 
     def plot_trajectory(self):
@@ -155,7 +156,7 @@ class TimeOptimalPMM:
 
 
 # Example usage:
-test = 3
+test = 8
 if test == 1:
     x0 = 0  # initial position
     v0 = 0  # initial velocity
@@ -171,6 +172,17 @@ elif test == 3:
     x0 = 0; v0 = 2; xT = -2; vT = 2; umax = 2; umin = 1; vmax = 3; vmin = 3
 elif test == 4:
     x0 = 0; v0 = 0; xT = -2; vT = 0; umax = 2; umin = 1; vmax = 1; vmin = 1
+elif test == 5:
+    a = 0.492188
+    x0 = 6.6; v0 = 1; xT = 12.5; vT = 0.3; umax = 12*a; umin = 12*a; vmax = 10; vmin = 10
+elif test == 6:
+    x0 = 11.56; v0 = 0.1; xT = 7.84; vT = 0.1; umax = 12; umin = 12; vmax = 10; vmin = 10
+elif test == 7:
+    x0 = 9.79; v0 = 0.5; xT = 14.37; vT = 1; umax = 3; umin = 7; vmax = 5; vmin = 5
+elif test == 8:
+    a = 0.69
+    x0 = -6.4; v0 = -4.8; xT = -5; vT = 0.; umax = 12*a; umin = 12*a; vmax = 10; vmin = 10
+
 
 time_optimal_pmm = TimeOptimalPMM(x0, v0, xT, vT, umax, umin, vmax, vmin)
 time_optimal_pmm.plot_trajectory()

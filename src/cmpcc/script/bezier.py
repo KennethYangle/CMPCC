@@ -12,7 +12,7 @@ from swarm_msgs.msg import MassPoints
 
 class PathPlanner:
     def __init__(self):
-        rospy.init_node('planning_path_node', anonymous=True)
+        rospy.init_node('path_planning_node', anonymous=True)
         self.refer_path_cps_pub = rospy.Publisher('refer_path_cps', PiecewiseBezier, queue_size=2)
         self.path_points_sub = rospy.Subscriber('path_points', MassPoints, self.path_points_callback, queue_size=1)
         self.points = None

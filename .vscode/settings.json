@@ -14,5 +14,10 @@
     "regex": "cpp",
     "future": "cpp",
     "valarray": "cpp"
-  }
+  },
+  "python.analysis.extraPaths": [
+    "/home/wsh/CMPCC/devel/lib/python2.7/dist-packages",
+    "/home/wsh/Prometheus/devel/lib/python2.7/dist-packages",
+    "/opt/ros/melodic/lib/python2.7/dist-packages"
+  ]
 }
