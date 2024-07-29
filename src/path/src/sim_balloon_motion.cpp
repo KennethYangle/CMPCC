@@ -10,10 +10,10 @@
 #include <rflysim_ros_pkg/Obj.h>
 #include <visualization_msgs/Marker.h>
 #include <geometry_msgs/Vector3.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <swarm_msgs/MassPoint.h>
 #include <swarm_msgs/MassPoints.h>
 
-ros::Publisher mass_points_pub, sphere_pub, marker_pub;
 
 struct balloon {
     Eigen::Vector3d position;
@@ -23,6 +23,12 @@ struct balloon {
 class SimBalloon {
 public:
     SimBalloon() {
+        ros::NodeHandle nh;
+        mass_points_pub = nh.advertise<swarm_msgs::MassPoints>("balloons/masspoint", 10);
+        sphere_pub = nh.advertise<rflysim_ros_pkg::Obj>("ue4_ros/obj", 10);
+        marker_pub = nh.advertise<visualization_msgs::Marker>("rviz/obj", 10);
+        local_pos_sub = nh.subscribe<geometry_msgs::PoseStamped>("mavros/local_position/pose", 10, &SimBalloon::local_pos_cb, this);
+
         std::string path = ros::package::getPath("params") + "/balloon_motion.yaml";
         YAML::Node node = YAML::LoadFile(path);
 
@@ -35,8 +41,10 @@ public:
                                          balloon_node["vel"][1].as<double>(),
                                          balloon_node["vel"][2].as<double>());
             balloons.push_back(b);
+            mask_intercepted.push_back(false);
             // std::cout << "position: " << b.position << "velocity: " << b.velocity << std::endl;
         }
+        impact_radius = node["impact_radius"].as<float>();
 
         init_msgs();
     }
@@ -71,6 +79,10 @@ public:
 
         // Show in RflySim and Rviz
         for (int i=0; i<balloons.size(); i++) {
+            if (mask_intercepted[i] == true) {
+                rflysim_interface_fake(i);
+                continue;
+            }
             rflysim_interface(i);
             rviz_interface(i);
         }
@@ -78,14 +90,16 @@ public:
 
     void publishBalloons() {
         swarm_msgs::MassPoints mass_points_msg;
-        for (const auto& balloon : balloons) {
+        for (int i=0; i<balloons.size(); i++) {
+            if (mask_intercepted[i] == true)
+                continue;
             swarm_msgs::MassPoint point;
-            point.position.x = balloon.position[0];
-            point.position.y = balloon.position[1];
-            point.position.z = balloon.position[2];
-            point.velocity.x = balloon.velocity[0];
-            point.velocity.y = balloon.velocity[1];
-            point.velocity.z = balloon.velocity[2];
+            point.position.x = balloons[i].position[0];
+            point.position.y = balloons[i].position[1];
+            point.position.z = balloons[i].position[2];
+            point.velocity.x = balloons[i].velocity[0];
+            point.velocity.y = balloons[i].velocity[1];
+            point.velocity.z = balloons[i].velocity[2];
             mass_points_msg.points.push_back(point);
         }
 
@@ -101,8 +115,18 @@ public:
         sphere_pub.publish(obj_msg);
     }
 
+    void rflysim_interface_fake(int id) {
+        obj_msg.id = 100 + id;
+        obj_msg.position.x = 0;
+        obj_msg.position.y = 0;
+        obj_msg.position.z = -2;
+
+        sphere_pub.publish(obj_msg);
+    }
+
     void rviz_interface(int id) {
         marker.id = 100 + id;
+        marker.lifetime = ros::Duration(0.1);
         marker.pose.position.x = balloons[id].position[0];
         marker.pose.position.y = balloons[id].position[1];
         marker.pose.position.z = balloons[id].position[2];
@@ -110,20 +134,41 @@ public:
         marker_pub.publish(marker);
     }
 
+    void pending_interception(Eigen::Vector3d mav_pos) {
+        int i;
+        for (i=0; i<balloons.size(); i++) {
+            Eigen::Vector3d rel_pos = mav_pos - balloons[i].position;
+            if (rel_pos.norm() < impact_radius) {
+                mask_intercepted[i] = true;
+                break;
+            }
+        }
+    }
+
+    void local_pos_cb(const geometry_msgs::PoseStamped::ConstPtr& msg){
+        mav_pos[0] = msg->pose.position.x;
+        mav_pos[1] = msg->pose.position.y;
+        mav_pos[2] = msg->pose.position.z;
+
+        pending_interception(mav_pos);
+    }
+
 private:
+    Eigen::Vector3d mav_pos;
     std::vector<balloon> balloons;
+    std::vector<bool> mask_intercepted;
+    float impact_radius;
     rflysim_ros_pkg::Obj obj_msg;
     visualization_msgs::Marker marker;
+    ros::Publisher mass_points_pub, sphere_pub, marker_pub;
+    ros::Subscriber local_pos_sub;
 };
+
 
 int main(int argc, char **argv) {
     ros::init(argc, argv, "sim_balloon_node");
-    ros::NodeHandle nh;
-    mass_points_pub = nh.advertise<swarm_msgs::MassPoints>("balloons/masspoint", 10);
-    sphere_pub = nh.advertise<rflysim_ros_pkg::Obj>("ue4_ros/obj", 10);
-    marker_pub = nh.advertise<visualization_msgs::Marker>("rviz/obj", 10);
-    
     SimBalloon sim;
+    
     ros::Time start_time = ros::Time::now();
     ros::Time last_time = ros::Time::now();
 
