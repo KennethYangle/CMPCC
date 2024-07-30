@@ -34,6 +34,8 @@ void PathPlanningNode::pathPointsCallback(const swarm_msgs::MassPoints::ConstPtr
         path_param.trajectory_id = i;
         path_param.x0 = x0;
         path_param.v0 = v0;
+        path_param.xT = xT;
+        path_param.vT = vT;
         path_param.umax = umax;
         path_param.umin = umin;
         path_param.t1 = t1;

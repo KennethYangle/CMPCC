@@ -81,6 +81,9 @@ sleep 2s
 # 路径、轨迹规划 + MPCC控制
 gnome-terminal --tab -t "Path Finding" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun path path_finding_node;exec bash"
 sleep 1s
+# gnome-terminal --tab -t "Path Planning" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun cmpcc bezier.py;exec bash"
+gnome-terminal --tab -t "Path Planning" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun path path_planning_node;exec bash"
+sleep 1s
 gnome-terminal --tab -t "MPCC" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch cmpcc fly.launch;exec bash"
 sleep 2s
 

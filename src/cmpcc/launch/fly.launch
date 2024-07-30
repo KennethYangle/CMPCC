@@ -1,7 +1,5 @@
 <launch>
 
-<node pkg="cmpcc" type="bezier.py" name="bezier"/>
-
 <node pkg="nodelet" type="nodelet" name="manager" args="manager" output="screen"/>
 
 <node pkg="cmpcc" name="fly_node" type="fly_node" output="screen" />

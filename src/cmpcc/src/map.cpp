@@ -1,48 +1,99 @@
 #include "map.h"
-#include <ros/package.h>
-#include <ros/ros.h>
 
 using namespace std;
 using namespace Eigen;
 namespace ft{
     Map::Map(){}
 
-    void Map::setPathPts(const quadrotor_msgs::PiecewiseBezier::ConstPtr& msg){
+    void Map::setPathPts(const swarm_msgs::TimeOptimalPMMPieces::ConstPtr& msg) {
         {
-            std::unique_lock<std::mutex> lock(mtx);
-            // 等待直到 can_modify 为 true
-            cv.wait(lock, [this]{ return can_modify; });
+        std::unique_lock<std::mutex> lock(mtx);
+        // 等待直到 can_modify 为 true
+        cv.wait(lock, [this]{ return can_modify; });
 
-            control_points.clear();
-            theta_sample.clear();
-            pos_sample.clear();
+        theta_sample.clear();
+        pos_sample.clear();
+        vel_sample.clear();
+        acc_sample.clear();
 
-            num_order = msg->num_order;
-            num_segment = msg->num_segment;
-            K_data_my = msg->K;
-            K_max = msg->K_max;
-            thetaMax = num_segment * 10.0;
+        num_segment = msg->num_segment;
+        thetaMax = msg->T_tatal;
+        double T_accumulated = 0;
 
-            int idx = 0;
-            for (int i=0; i<num_segment; i++) {
-                Eigen::MatrixXd piece_cpts = MatrixXd::Zero(K_max, 3);
-                for (int j=0; j<K_data_my[i]; j++) {
-                    piece_cpts(j, 0) = msg->pts[idx].x;
-                    piece_cpts(j, 1) = msg->pts[idx].y;
-                    piece_cpts(j, 2) = msg->pts[idx].z;
-                    idx++;
+        // 分段循环
+        for (int i = 0; i < num_segment; i++) {
+            auto piece = msg->pieces[i];
+            auto case_idx = piece.case_idx;
+            double T_ = piece.T;
+
+            double v_line_x = (piece.xT.x - piece.x0.x) / T_;
+            double v_line_y = (piece.xT.y - piece.x0.y) / T_;
+            double v_line_z = (piece.xT.z - piece.x0.z) / T_;
+            double x = piece.x0.x, y = piece.x0.y, z = piece.x0.z;
+            double vx = piece.v0.x, vy = piece.v0.y, vz = piece.v0.z;
+            double ux = 0, uy = 0, uz = 0;
+            // 采1000个点循环
+            for (int tt = 0; tt < num_points; tt++) {
+                double theta_ = T_ * tt / (num_points - 1);
+                double dt = T_ / num_points;
+                Eigen::Vector3d thetaPoint, thetaDot, thetaDotDot;
+
+                // x轴
+                if (isEqualFloat(case_idx.x, 2)) {
+                    thetaPoint[0] = theta_ * v_line_x;
+                    thetaDot[0] = v_line_x;
+                    thetaDotDot[0] = 0;
                 }
-                control_points.push_back(piece_cpts);
+                else {
+                    x = x + vx * dt + 0.5 * ux * dt * dt;
+                    vx = vx + ux * dt;
+                    //                     phase 1,                             phase 2, phase 3
+                    ux = theta_ < piece.t1.x ? piece.umax.x : (theta_ < piece.t2.x ? 0 : -piece.umin.x);
+                    thetaPoint[0] = x;
+                    thetaDot[0] = vx;
+                    thetaDotDot[0] = ux;
+                }
+                // y轴
+                if (isEqualFloat(case_idx.y, 2)) {
+                    thetaPoint[1] = theta_ * v_line_y;
+                    thetaDot[1] = v_line_y;
+                    thetaDotDot[1] = 0;
+                }
+                else {
+                    y = y + vy * dt + 0.5 * uy * dt * dt;
+                    vy = vy + uy * dt;
+                    //                     phase 1,                             phase 2, phase 3
+                    uy = theta_ < piece.t1.y ? piece.umax.y : (theta_ < piece.t2.y ? 0 : -piece.umin.y);
+                    thetaPoint[1] = y;
+                    thetaDot[1] = vy;
+                    thetaDotDot[1] = uy;
+                }
+                // z轴
+                if (isEqualFloat(case_idx.z, 2)) {
+                    thetaPoint[2] = theta_ * v_line_z;
+                    thetaDot[2] = v_line_z;
+                    thetaDotDot[2] = 0;
+                }
+                else {
+                    z = z + vz * dt + 0.5 * uz * dt * dt;
+                    vz = vz + uz * dt;
+                    //                     phase 1,                             phase 2, phase 3
+                    uz = theta_ < piece.t1.z ? piece.umax.z : (theta_ < piece.t2.z ? 0 : -piece.umin.z);
+                    thetaPoint[2] = z;
+                    thetaDot[2] = vz;
+                    thetaDotDot[2] = uz;
+                }
+
+                theta_sample.push_back(theta_ + T_accumulated);
+                pos_sample.push_back(thetaPoint);
+                vel_sample.push_back(thetaDot);
+                acc_sample.push_back(thetaDotDot);
             }
+
+            T_accumulated += T_;
+        }
         }
         can_modify = false;
-
-        Eigen::Vector3d thetaPoint;
-        for (double theta=0; theta<thetaMax; theta+=0.001){
-            getGlobalCommand(theta, thetaPoint);
-            theta_sample.push_back(theta);
-            pos_sample.push_back(thetaPoint);
-        }
     }
 
     double Map::findNearestTheta(double theta, Eigen::Vector3d & position){
@@ -127,114 +178,103 @@ namespace ft{
         return nearestTheta;
     }
 
-    // 计算贝塞尔基础函数，3阶，第i个点
-    double binom[4] = {1,3,3,1};
-    inline double bezierBasis(int i, double t) {
-        return pow(1 - t, 3 - i) * pow(t, i) * binom[i];
-    }
-
-    // 计算贝塞尔基础函数的导数，3阶，第i个点
-    double bezierBasisDerivative(int i, double t) {
-        if (i==0) return -3*(1-t)*(1-t);
-        if (i==1) return 3*(1-t)*(1-3*t);
-        if (i==2) return 3*t*(2-3*t);
-        if (i==3) return 3*t*t;
-    }
-
-    // 3阶贝塞尔曲线位置计算函数
-    Vector3d getBezierPos(double t, Eigen::MatrixXd cps){
-        assert(cps.rows() == 4 && cps.cols() == 3 && "Control points matrix must be 4x3.");
-
-        Vector3d pos(0, 0, 0);
-        for (int i = 0; i < cps.rows(); ++i) {
-            double basis = bezierBasis(i, t);
-            pos += cps.row(i) * basis;
-        }
-        return pos;
-    }
-
-    // 3阶贝塞尔曲线速度计算函数
-    Vector3d getBezierVel(double t, const Eigen::MatrixXd& cps) {
-        assert(cps.rows() == 4 && cps.cols() == 3 && "Control points matrix must be 4x3.");
-
-        Vector3d vel(0, 0, 0);
-        for (int i = 0; i < cps.rows(); ++i) {
-            double basisDeriv = bezierBasisDerivative(i, t);
-            vel += cps.row(i) * basisDeriv;
-        }
-        return vel / 3.0;
-    }
-
-    // 3阶贝塞尔曲线加速度计算函数
-    Eigen::Vector3d getBezierAcc(double t, const Eigen::MatrixXd& cps) {
-        assert(cps.rows() == 4 && cps.cols() == 3 && "Control points matrix must be 4x3.");
-
-        // 计算加速度的每个分量
-        Eigen::Vector3d acc(0, 0, 0);
-        acc = (6-6*t) * cps.row(0) + (18*t-12) * cps.row(1) + (6-18*t) * cps.row(2) + 6*t * cps.row(3);
-        return acc;
-    }
 
     void Map::getGlobalCommand(double t, Vector3d & position){
-        t = std::min(t, thetaMax) / 10;     // 保护不越界
-
-        int idx = int(t);   // 位于第几段
-        t -= idx;           // [0, 1)
-        // cout<< t << endl;
+        t = std::min(t, thetaMax);     // 保护不越界
 
         {
-            std::lock_guard<std::mutex> lock(mtx);
-            position = getBezierPos(t, control_points[idx]);
+        std::lock_guard<std::mutex> lock(mtx);
+        // Binary search for the closest index
+        auto it = lower_bound(theta_sample.begin(), theta_sample.end(), t);
+        int idx = distance(theta_sample.begin(), it);
+
+        // Check if we need to adjust idx to ensure it's within bounds
+        if (idx == theta_sample.size()) {
+            idx = theta_sample.size() - 1;
+        } else if (idx > 0 && t - theta_sample[idx - 1] < theta_sample[idx] - t) {
+            idx--;
+        }
+
+        position = pos_sample[idx];
         }
         can_modify = true;
         cv.notify_all(); // 通知所有等待的线程
     }
 
     void Map::getGlobalCommand(double t, Vector3d & position, Vector3d & velocity){
-        t = std::min(t, thetaMax) / 10;     // 保护不越界
-
-        int idx = int(t);   // 位于第几段
-        t -= idx;           // [0, 1)
+        t = std::min(t, thetaMax);     // 保护不越界
 
         {
-            std::lock_guard<std::mutex> lock(mtx);
-            position = getBezierPos(t, control_points[idx]);
-            velocity = getBezierVel(t, control_points[idx]); 
+        std::lock_guard<std::mutex> lock(mtx);
+        // Binary search for the closest index
+        auto it = lower_bound(theta_sample.begin(), theta_sample.end(), t);
+        int idx = distance(theta_sample.begin(), it);
+
+        // Check if we need to adjust idx to ensure it's within bounds
+        if (idx == theta_sample.size()) {
+            idx = theta_sample.size() - 1;
+        } else if (idx > 0 && t - theta_sample[idx - 1] < theta_sample[idx] - t) {
+            idx--;
+        }
+
+        position = pos_sample[idx];
+        velocity = vel_sample[idx];
         }
         can_modify = true;
         cv.notify_all(); // 通知所有等待的线程
     }
     
     void Map::getGlobalCommand(double t, Vector3d & position, Vector3d & velocity, Vector3d & acceleration){
-        t = std::min(t, thetaMax) / 10;     // 保护不越界
-
-        int idx = int(t);   // 位于第几段
-        t -= idx;           // [0, 1)
+        t = std::min(t, thetaMax);     // 保护不越界
 
         {
-            std::lock_guard<std::mutex> lock(mtx);
-            position = getBezierPos(t, control_points[idx]);
-            velocity = getBezierVel(t, control_points[idx]);
-            acceleration = getBezierAcc(t, control_points[idx]);
+        std::lock_guard<std::mutex> lock(mtx);
+        // Binary search for the closest index
+        auto it = lower_bound(theta_sample.begin(), theta_sample.end(), t);
+        int idx = distance(theta_sample.begin(), it);
+
+        // Check if we need to adjust idx to ensure it's within bounds
+        if (idx == theta_sample.size()) {
+            idx = theta_sample.size() - 1;
+        } else if (idx > 0 && t - theta_sample[idx - 1] < theta_sample[idx] - t) {
+            idx--;
+        }
+
+        position = pos_sample[idx];
+        velocity = vel_sample[idx];
+        acceleration = acc_sample[idx];
         }
         can_modify = true;
         cv.notify_all(); // 通知所有等待的线程
     }
 
     double Map::getYaw(double t){
-        t = std::min(t, thetaMax) / 10;     // 保护不越界
-
-        int idx = int(t);   // 位于第几段
-        t -= idx;           // [0, 1)
-        Vector3d velocity;
+        t = std::min(t, thetaMax);     // 保护不越界
+        Eigen::Vector3d velocity;
 
         {
-            std::lock_guard<std::mutex> lock(mtx);
-            velocity = getBezierVel(t, control_points[idx]); 
+        std::lock_guard<std::mutex> lock(mtx);
+        // Binary search for the closest index
+        auto it = lower_bound(theta_sample.begin(), theta_sample.end(), t);
+        int idx = distance(theta_sample.begin(), it);
+
+        // Check if we need to adjust idx to ensure it's within bounds
+        if (idx == theta_sample.size()) {
+            idx = theta_sample.size() - 1;
+        } else if (idx > 0 && t - theta_sample[idx - 1] < theta_sample[idx] - t) {
+            idx--;
+        }
+
+        velocity = vel_sample[idx];
         }
         can_modify = true;
         cv.notify_all(); // 通知所有等待的线程
         return std::atan2(velocity[1], velocity[0]);
+    }
+
+    // return true if a == b in double, else false
+    bool Map::isEqualFloat(double a, double b) {
+        return fabs(a - b) < EPS ? true : false;
     }
 
 } //namespace ft

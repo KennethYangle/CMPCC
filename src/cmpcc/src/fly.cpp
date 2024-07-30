@@ -1,5 +1,7 @@
 #include <quadrotor_msgs/PositionCommand.h>
 #include <quadrotor_msgs/PiecewiseBezier.h>
+#include <swarm_msgs/TimeOptimalPMMPieces.h>
+#include <swarm_msgs/TimeOptimalPMMParam.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/TwistStamped.h>
@@ -60,7 +62,7 @@ void local_vel_cb(const geometry_msgs::TwistStamped::ConstPtr& msg){
     stateOdom.coeffRef(7,0) = vDrone(2);
 }
 
-void refer_path_callback(const quadrotor_msgs::PiecewiseBezier::ConstPtr& msg){
+void refer_path_params_callback(const swarm_msgs::TimeOptimalPMMPieces::ConstPtr& msg) {
     pathRead = true;
     simSolver.map.setPathPts(msg);
     simSolver.updateSolver();
@@ -155,7 +157,7 @@ int main(int argc, char **argv)
     refer_pub = nodeHandle.advertise<nav_msgs::Path>("refer_path", 1);
     drone_pub = nodeHandle.advertise<visualization_msgs::Marker>("drone_pose", 1);
     global_pub = nodeHandle.advertise<visualization_msgs::Marker>("global_pose", 1);
-    ros::Subscriber sub_path = nodeHandle.subscribe("/refer_path_cps", 5 , refer_path_callback);
+    ros::Subscriber sub_path = nodeHandle.subscribe("/refer_path_params", 5 , refer_path_params_callback);
     ros::Subscriber local_pos_sub = nodeHandle.subscribe<geometry_msgs::PoseStamped>("mavros/local_position/pose", 10, local_pos_cb, ros::TransportHints().tcpNoDelay());
     ros::Subscriber local_vel_sub = nodeHandle.subscribe<geometry_msgs::TwistStamped>("mavros/local_position/velocity_local", 10, local_vel_cb, ros::TransportHints().tcpNoDelay());
     predict_pub = nodeHandle.advertise<nav_msgs::Path>("predict_path", 1);
