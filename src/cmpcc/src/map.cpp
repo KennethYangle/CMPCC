@@ -6,6 +6,7 @@ namespace ft{
     Map::Map(){}
 
     void Map::setPathPts(const swarm_msgs::TimeOptimalPMMPieces::ConstPtr& msg) {
+        std::vector<double> x_all, y_all, z_all;
         {
         std::unique_lock<std::mutex> lock(mtx);
         // 等待直到 can_modify 为 true
@@ -18,7 +19,7 @@ namespace ft{
 
         num_segment = msg->num_segment;
         thetaMax = msg->T_tatal;
-        double T_accumulated = 0;
+        double T_accumulated = 0.;
 
         // 分段循环
         for (int i = 0; i < num_segment; i++) {
@@ -32,6 +33,7 @@ namespace ft{
             double x = piece.x0.x, y = piece.x0.y, z = piece.x0.z;
             double vx = piece.v0.x, vy = piece.v0.y, vz = piece.v0.z;
             double ux = 0, uy = 0, uz = 0;
+
             // 采1000个点循环
             for (int tt = 0; tt < num_points; tt++) {
                 double theta_ = T_ * tt / (num_points - 1);
@@ -47,8 +49,13 @@ namespace ft{
                 else {
                     x = x + vx * dt + 0.5 * ux * dt * dt;
                     vx = vx + ux * dt;
-                    //                     phase 1,                             phase 2, phase 3
-                    ux = theta_ < piece.t1.x ? piece.umax.x : (theta_ < piece.t2.x ? 0 : -piece.umin.x);
+                    if (isEqualFloat(case_idx.x, 0)) {
+                        //                         phase 1,                             phase 2, phase 3
+                        ux = theta_ < piece.t1.x ? piece.umax.x : (theta_ < piece.t2.x ? 0 : -piece.umin.x);
+                    }
+                    else {
+                        ux = theta_ < piece.t1.x ? -piece.umin.x : (theta_ < piece.t2.x ? 0 : piece.umax.x);
+                    }
                     thetaPoint[0] = x;
                     thetaDot[0] = vx;
                     thetaDotDot[0] = ux;
@@ -62,8 +69,13 @@ namespace ft{
                 else {
                     y = y + vy * dt + 0.5 * uy * dt * dt;
                     vy = vy + uy * dt;
-                    //                     phase 1,                             phase 2, phase 3
-                    uy = theta_ < piece.t1.y ? piece.umax.y : (theta_ < piece.t2.y ? 0 : -piece.umin.y);
+                    if (isEqualFloat(case_idx.y, 0)) {
+                        //                     phase 1,                             phase 2, phase 3
+                        uy = theta_ < piece.t1.y ? piece.umax.y : (theta_ < piece.t2.y ? 0 : -piece.umin.y);
+                    }
+                    else {
+                        uy = theta_ < piece.t1.y ? -piece.umin.y : (theta_ < piece.t2.y ? 0 : piece.umax.y);
+                    }
                     thetaPoint[1] = y;
                     thetaDot[1] = vy;
                     thetaDotDot[1] = uy;
@@ -77,8 +89,13 @@ namespace ft{
                 else {
                     z = z + vz * dt + 0.5 * uz * dt * dt;
                     vz = vz + uz * dt;
-                    //                     phase 1,                             phase 2, phase 3
-                    uz = theta_ < piece.t1.z ? piece.umax.z : (theta_ < piece.t2.z ? 0 : -piece.umin.z);
+                    if (isEqualFloat(case_idx.z, 0)) {
+                        //                     phase 1,                             phase 2, phase 3
+                        uz = theta_ < piece.t1.z ? piece.umax.z : (theta_ < piece.t2.z ? 0 : -piece.umin.z);
+                    }
+                    else {
+                        uz = theta_ < piece.t1.z ? -piece.umin.z : (theta_ < piece.t2.z ? 0 : piece.umax.z);
+                    }
                     thetaPoint[2] = z;
                     thetaDot[2] = vz;
                     thetaDotDot[2] = uz;
@@ -94,6 +111,21 @@ namespace ft{
         }
         }
         can_modify = false;
+
+        // // matplotlib-cpp plot
+        // for (auto p:pos_sample) {
+        //     x_all.push_back(p[0]);
+        //     y_all.push_back(p[1]);
+        //     z_all.push_back(p[2]);
+        // }
+        // plt::plot3(x_all, y_all, z_all);
+        // plt::xlabel("x [m]");
+        // plt::ylabel("y [m]");
+        // plt::set_zlabel("z [m]"); // set_zlabel rather than just zlabel, in accordance with the Axes3D method
+        // plt::xlim(-10, 73);
+        // plt::ylim(-2, 25);
+        // plt::legend();
+        // plt::show();
     }
 
     double Map::findNearestTheta(double theta, Eigen::Vector3d & position){
@@ -180,8 +212,6 @@ namespace ft{
 
 
     void Map::getGlobalCommand(double t, Vector3d & position){
-        t = std::min(t, thetaMax);     // 保护不越界
-
         {
         std::lock_guard<std::mutex> lock(mtx);
         // Binary search for the closest index
@@ -191,8 +221,6 @@ namespace ft{
         // Check if we need to adjust idx to ensure it's within bounds
         if (idx == theta_sample.size()) {
             idx = theta_sample.size() - 1;
-        } else if (idx > 0 && t - theta_sample[idx - 1] < theta_sample[idx] - t) {
-            idx--;
         }
 
         position = pos_sample[idx];
@@ -202,8 +230,6 @@ namespace ft{
     }
 
     void Map::getGlobalCommand(double t, Vector3d & position, Vector3d & velocity){
-        t = std::min(t, thetaMax);     // 保护不越界
-
         {
         std::lock_guard<std::mutex> lock(mtx);
         // Binary search for the closest index
@@ -213,8 +239,6 @@ namespace ft{
         // Check if we need to adjust idx to ensure it's within bounds
         if (idx == theta_sample.size()) {
             idx = theta_sample.size() - 1;
-        } else if (idx > 0 && t - theta_sample[idx - 1] < theta_sample[idx] - t) {
-            idx--;
         }
 
         position = pos_sample[idx];
@@ -225,8 +249,6 @@ namespace ft{
     }
     
     void Map::getGlobalCommand(double t, Vector3d & position, Vector3d & velocity, Vector3d & acceleration){
-        t = std::min(t, thetaMax);     // 保护不越界
-
         {
         std::lock_guard<std::mutex> lock(mtx);
         // Binary search for the closest index
@@ -236,8 +258,6 @@ namespace ft{
         // Check if we need to adjust idx to ensure it's within bounds
         if (idx == theta_sample.size()) {
             idx = theta_sample.size() - 1;
-        } else if (idx > 0 && t - theta_sample[idx - 1] < theta_sample[idx] - t) {
-            idx--;
         }
 
         position = pos_sample[idx];
@@ -249,7 +269,6 @@ namespace ft{
     }
 
     double Map::getYaw(double t){
-        t = std::min(t, thetaMax);     // 保护不越界
         Eigen::Vector3d velocity;
 
         {
@@ -261,8 +280,6 @@ namespace ft{
         // Check if we need to adjust idx to ensure it's within bounds
         if (idx == theta_sample.size()) {
             idx = theta_sample.size() - 1;
-        } else if (idx > 0 && t - theta_sample[idx - 1] < theta_sample[idx] - t) {
-            idx--;
         }
 
         velocity = vel_sample[idx];

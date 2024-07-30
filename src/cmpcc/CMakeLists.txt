@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(cmpcc)
 
-set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_BUILD_TYPE "Release")
 set(CMAKE_CXX_FLAGS_RELEASE "-O3 -w -g -fPIC")
 
@@ -25,6 +25,7 @@ include_directories(
   /usr/local/include/eigen3
   ${YAML_CPP_INCLUDE_DIR}
 )
+include_directories(../../matplotlib)
 
 add_executable(osqp_test
     src/osqp_test.cpp
@@ -38,8 +39,10 @@ add_executable(corridor_test
     src/bezier_base.cpp
     src/my_spline.cpp
     src/corridor.cpp)
+set(Python_INCLUDE_DIRS "/usr/include/python2.7")
+target_include_directories(corridor_test PRIVATE ${Python_INCLUDE_DIRS})
 add_dependencies(corridor_test ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(corridor_test ${catkin_LIBRARIES} yaml-cpp)
+target_link_libraries(corridor_test ${catkin_LIBRARIES} ${Python_LIBRARIES} yaml-cpp)
 
 add_executable(solver_test
     src/display_msg.cpp
@@ -51,9 +54,11 @@ add_executable(solver_test
     src/bezier_base.cpp
     src/my_spline.cpp
     src/corridor.cpp)
+target_include_directories(solver_test PRIVATE ${Python_INCLUDE_DIRS})
 add_dependencies(solver_test ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(solver_test
     ${catkin_LIBRARIES} 
+    ${Python_LIBRARIES}
     yaml-cpp
     osqp::osqp
 )
@@ -68,9 +73,11 @@ add_executable(fly_node
     src/bezier_base.cpp
     src/my_spline.cpp
     src/corridor.cpp) 
+target_include_directories(fly_node PRIVATE ${Python_INCLUDE_DIRS})
 add_dependencies(fly_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(fly_node
     ${catkin_LIBRARIES}
+    ${Python_LIBRARIES}
     yaml-cpp
     osqp::osqp
 )
@@ -85,9 +92,11 @@ add_executable(plot_bag_node
     src/bezier_base.cpp
     src/my_spline.cpp
     src/corridor.cpp) 
+target_include_directories(plot_bag_node PRIVATE ${Python_INCLUDE_DIRS})
 add_dependencies(plot_bag_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(plot_bag_node
     ${catkin_LIBRARIES}
+    ${Python_LIBRARIES}
     yaml-cpp
     osqp::osqp
 )   

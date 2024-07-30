@@ -28,6 +28,9 @@ void PathPlanningNode::pathPointsCallback(const swarm_msgs::MassPoints::ConstPtr
         TimeOptimalPMM3D pmm3d(x0, v0, xT, vT, umax, umin, vmax, vmin);
         std::cout << "x0: " << x0 << "\nxT: " << xT << "\nv0: " << v0 << "\nvT: " << vT << std::endl;
         auto [t1, t2, T, case_idx] = pmm3d.compute_times();
+        // Synchronized u
+        umax.x = pmm3d.pmm_x.umax; umax.y = pmm3d.pmm_y.umax; umax.z = pmm3d.pmm_z.umax;
+        umin.x = pmm3d.pmm_x.umin; umin.y = pmm3d.pmm_y.umin; umin.z = pmm3d.pmm_z.umin;
 
         // Populate TimeOptimalPMMParam message
         swarm_msgs::TimeOptimalPMMParam path_param;

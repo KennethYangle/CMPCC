@@ -14,7 +14,9 @@
 #include <swarm_msgs/TimeOptimalPMMParam.h>
 #include <mutex>
 #include <condition_variable>
+#include <matplotlibcpp.h>
 #define EPS 1e-4
+namespace plt = matplotlibcpp;
 
 namespace ft {
 //    class Map

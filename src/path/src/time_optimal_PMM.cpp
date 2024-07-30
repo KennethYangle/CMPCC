@@ -186,7 +186,7 @@ std::tuple<Vector3, Vector3, double, Vector3> TimeOptimalPMM3D::compute_times() 
     auto [t1_z, t2_z, T_z, _z] = pmm_z.compute_times();
 
     // Determine the maximum minimum time
-    double T = std::max({T_x, T_y, T_z});
+    T = std::max({T_x, T_y, T_z});
     std::cout << "T: " << T << ", T_x: " << T_x << ", T_y: " << T_y << ", T_z: " << T_z << std::endl;
 
     // Find the alpha value for the remaining two axes
@@ -211,7 +211,101 @@ std::tuple<Vector3, Vector3, double, Vector3> TimeOptimalPMM3D::compute_times() 
 }
 
 void TimeOptimalPMM3D::plot_trajectory() {
-    pmm_x.plot_trajectory();
-    pmm_y.plot_trajectory();
-    pmm_z.plot_trajectory();
+    // // plot each axis
+    // pmm_x.plot_trajectory();
+    // pmm_y.plot_trajectory();
+    // pmm_z.plot_trajectory();
+
+    // plot 3D trajectory
+    std::vector<double> t_all;
+    std::vector<double> x_all, y_all, z_all;
+
+    double v_line_x = (pmm_x.xT - pmm_x.x0) / pmm_x.T_;
+    double v_line_y = (pmm_y.xT - pmm_y.x0) / pmm_y.T_;
+    double v_line_z = (pmm_z.xT - pmm_z.x0) / pmm_z.T_;
+    double x = pmm_x.x0, y = pmm_y.x0, z = pmm_z.x0;
+    double vx = pmm_x.v0, vy = pmm_y.v0, vz = pmm_z.v0;
+    double ux = 0, uy = 0, uz = 0;
+    // 采1000个点循环
+    for (int tt = 0; tt < num_points; tt++) {
+        double theta_ = T * tt / (num_points - 1);
+        double dt = T / num_points;
+        Eigen::Vector3d thetaPoint, thetaDot, thetaDotDot;
+
+        // x轴
+        if (isEqualFloat(pmm_x.case_idx_, 2)) {
+            thetaPoint[0] = theta_ * v_line_x;
+            thetaDot[0] = v_line_x;
+            thetaDotDot[0] = 0;
+        }
+        else {
+            x = x + vx * dt + 0.5 * ux * dt * dt;
+            vx = vx + ux * dt;
+            if (isEqualFloat(pmm_x.case_idx_, 0)) {
+                //                        phase 1,                          phase 2, phase 3
+                ux = theta_ < pmm_x.t1_ ? pmm_x.umax : (theta_ < pmm_x.t2_ ? 0 : -pmm_x.umin);
+            }
+            else {
+                ux = theta_ < pmm_x.t1_ ? -pmm_x.umin : (theta_ < pmm_x.t2_ ? 0 : pmm_x.umax);
+            }
+            thetaPoint[0] = x;
+            thetaDot[0] = vx;
+            thetaDotDot[0] = ux;
+        }
+        // y轴
+        if (isEqualFloat(pmm_y.case_idx_, 2)) {
+            thetaPoint[1] = theta_ * v_line_y;
+            thetaDot[1] = v_line_y;
+            thetaDotDot[1] = 0;
+        }
+        else {
+            y = y + vy * dt + 0.5 * uy * dt * dt;
+            vy = vy + uy * dt;
+            if (isEqualFloat(pmm_y.case_idx_, 0)) {
+                uy = theta_ < pmm_y.t1_ ? pmm_y.umax : (theta_ < pmm_y.t2_ ? 0 : -pmm_y.umin);
+            }
+            else {
+                uy = theta_ < pmm_y.t1_ ? -pmm_y.umin : (theta_ < pmm_y.t2_ ? 0 : pmm_y.umax);
+            }
+            thetaPoint[1] = y;
+            thetaDot[1] = vy;
+            thetaDotDot[1] = uy;
+        }
+        // z轴
+        if (isEqualFloat(pmm_z.case_idx_, 2)) {
+            thetaPoint[2] = theta_ * v_line_z;
+            thetaDot[2] = v_line_z;
+            thetaDotDot[2] = 0;
+        }
+        else {
+            z = z + vz * dt + 0.5 * uz * dt * dt;
+            vz = vz + uz * dt;
+            if (isEqualFloat(pmm_z.case_idx_, 0)) {
+                uz = theta_ < pmm_z.t1_ ? pmm_z.umax : (theta_ < pmm_z.t2_ ? 0 : -pmm_z.umin);
+            }
+            else {
+                uz = theta_ < pmm_z.t1_ ? -pmm_z.umin : (theta_ < pmm_z.t2_ ? 0 : pmm_z.umax);
+            }
+            thetaPoint[2] = z;
+            thetaDot[2] = vz;
+            thetaDotDot[2] = uz;
+        }
+
+        t_all.push_back(theta_);
+        x_all.push_back(thetaPoint[0]);
+        y_all.push_back(thetaPoint[1]);
+        z_all.push_back(thetaPoint[2]);
+    }
+
+    plt::plot3(x_all, y_all, z_all);
+    plt::xlabel("x label");
+    plt::ylabel("y label");
+    plt::set_zlabel("z label"); // set_zlabel rather than just zlabel, in accordance with the Axes3D method
+    plt::legend();
+    plt::show();
+}
+
+// return true if a == b in double, else false
+bool TimeOptimalPMM3D::isEqualFloat(double a, double b) {
+    return fabs(a - b) < EPS ? true : false;
 }
