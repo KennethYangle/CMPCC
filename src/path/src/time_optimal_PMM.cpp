@@ -20,8 +20,14 @@ std::tuple<double, double, double, int> TimeOptimalPMM::compute_times() {
         }
     }
 
+    // Not find
     if (best_T == std::numeric_limits<double>::infinity()) {
-        throw std::runtime_error("No valid time solution found for the given conditions.");
+        t1_ = 0;
+        t2_ = 0;
+        T_ = std::max((xT-x0)/vmax, (x0-xT)/vmin);
+        case_idx_ = 2;
+        best_times = std::make_tuple(t1_, t2_, T_, case_idx_);
+        return best_times;
     }
 
     t1_ = std::get<0>(best_times);
@@ -39,7 +45,7 @@ void TimeOptimalPMM::plot_trajectory() {
         double v_line = (xT - x0) / T_;
         for (int i = 0; i < num_points; ++i) {
             t_all.push_back(T_ * i / (num_points - 1));
-            x_all.push_back(t_all[i] * v_line);
+            x_all.push_back(x0 + t_all[i] * v_line);
             v_all.push_back(v_line);
             u_all.push_back(0);
         }
@@ -156,14 +162,15 @@ double TimeOptimalPMM::find_alpha(double T_target, double tol = 1e-2, int max_it
         umin = original_umin * alpha_mid;
         // std::cout << "alpha_mid: " << alpha_mid << std::endl;
 
-        try {
-            auto [_, __, T, _0] = compute_times();
+        auto [_, __, T, case_idx_] = compute_times();
+        if (case_idx_ < 1.5) {      // case_idx_ == 0 or case_idx_ == 1
             std::cout << T << std::endl;
             if (T > T_target)
                 alpha_min = alpha_mid;
             else
                 alpha_max = alpha_mid;
-        } catch (const std::exception&) {
+        }
+        else {
             alpha_min = alpha_mid;
         }
 
@@ -211,10 +218,10 @@ std::tuple<Vector3, Vector3, double, Vector3> TimeOptimalPMM3D::compute_times() 
 }
 
 void TimeOptimalPMM3D::plot_trajectory() {
-    // // plot each axis
-    // pmm_x.plot_trajectory();
-    // pmm_y.plot_trajectory();
-    // pmm_z.plot_trajectory();
+    // plot each axis
+    pmm_x.plot_trajectory();
+    pmm_y.plot_trajectory();
+    pmm_z.plot_trajectory();
 
     // plot 3D trajectory
     std::vector<double> t_all;
@@ -234,7 +241,7 @@ void TimeOptimalPMM3D::plot_trajectory() {
 
         // x轴
         if (isEqualFloat(pmm_x.case_idx_, 2)) {
-            thetaPoint[0] = theta_ * v_line_x;
+            thetaPoint[0] = pmm_x.x0 + theta_ * v_line_x;
             thetaDot[0] = v_line_x;
             thetaDotDot[0] = 0;
         }
@@ -254,7 +261,7 @@ void TimeOptimalPMM3D::plot_trajectory() {
         }
         // y轴
         if (isEqualFloat(pmm_y.case_idx_, 2)) {
-            thetaPoint[1] = theta_ * v_line_y;
+            thetaPoint[1] = pmm_y.x0 + theta_ * v_line_y;
             thetaDot[1] = v_line_y;
             thetaDotDot[1] = 0;
         }
@@ -273,7 +280,7 @@ void TimeOptimalPMM3D::plot_trajectory() {
         }
         // z轴
         if (isEqualFloat(pmm_z.case_idx_, 2)) {
-            thetaPoint[2] = theta_ * v_line_z;
+            thetaPoint[2] = pmm_z.x0 + theta_ * v_line_z;
             thetaDot[2] = v_line_z;
             thetaDotDot[2] = 0;
         }

@@ -27,10 +27,10 @@ int main() {
     // umin.x = 12.; umin.y = 12.; umin.z = 7.;
     // vmax.x = 10.; vmax.y = 10.; vmax.z = 5.;
     // vmin.x = 10.; vmin.y = 10.; vmin.z = 5.;
-    x0.x = 2.; x0.y = 5.; x0.z = 29;
-    v0.x = 0.; v0.y = 0.; v0.z = 0.8;
-    xT.x = -5; xT.y = 10; xT.z = 43;
-    vT.x = 0.; vT.y = 0.; vT.z = 1;
+    x0.x = 0.; x0.y = -0.02; x0.z = 5.49;
+    v0.x = 0.076; v0.y = -0.05; v0.z = 7.17;
+    xT.x = 2; xT.y = 5; xT.z = 15.43;
+    vT.x = 0.; vT.y = 0.; vT.z = 0.8;
     umax.x = 12.; umax.y = 12.; umax.z = 3.;
     umin.x = 12.; umin.y = 12.; umin.z = 7.;
     vmax.x = 10.; vmax.y = 10.; vmax.z = 5.;

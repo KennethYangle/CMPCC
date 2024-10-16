@@ -2,7 +2,9 @@ cmake_minimum_required(VERSION 3.0.2)
 project(path)
 
 set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_FLAGS "-O2")
+SET(CMAKE_BUILD_TYPE "RELEASE")
+SET(CMAKE_CXX_FLAGS_DEBUG "$ENV{CXXFLAGS} -O0 -Wall -g -ggdb")
+SET(CMAKE_CXX_FLAGS_RELEASE "$ENV{CXXFLAGS} -O3 -Wall")
 
 find_package(catkin REQUIRED COMPONENTS
   geometry_msgs

@@ -68,9 +68,8 @@ catkin_make
 ## 3. Run the Simulation
 ```
 source devel/setup.bash
-./simulation.sh
+./_scripts/all.sh -s
 ```
-You can set wind disturbance with keyboard "WASD". The default disturbance is quite fierce. If the drone flew outside the corridor, you would have to relauch the nodes.
 
 ## 4. Licence
 The source code is released under [GPLv3](http://www.gnu.org/licenses/) license.

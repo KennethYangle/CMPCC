@@ -42,7 +42,7 @@ namespace ft{
 
                 // x轴
                 if (isEqualFloat(case_idx.x, 2)) {
-                    thetaPoint[0] = theta_ * v_line_x;
+                    thetaPoint[0] = piece.x0.x + theta_ * v_line_x;
                     thetaDot[0] = v_line_x;
                     thetaDotDot[0] = 0;
                 }
@@ -62,7 +62,7 @@ namespace ft{
                 }
                 // y轴
                 if (isEqualFloat(case_idx.y, 2)) {
-                    thetaPoint[1] = theta_ * v_line_y;
+                    thetaPoint[1] = piece.x0.y + theta_ * v_line_y;
                     thetaDot[1] = v_line_y;
                     thetaDotDot[1] = 0;
                 }
@@ -82,7 +82,7 @@ namespace ft{
                 }
                 // z轴
                 if (isEqualFloat(case_idx.z, 2)) {
-                    thetaPoint[2] = theta_ * v_line_z;
+                    thetaPoint[2] = piece.x0.z + theta_ * v_line_z;
                     thetaDot[2] = v_line_z;
                     thetaDotDot[2] = 0;
                 }
@@ -111,21 +111,6 @@ namespace ft{
         }
         }
         can_modify = false;
-
-        // // matplotlib-cpp plot
-        // for (auto p:pos_sample) {
-        //     x_all.push_back(p[0]);
-        //     y_all.push_back(p[1]);
-        //     z_all.push_back(p[2]);
-        // }
-        // plt::plot3(x_all, y_all, z_all);
-        // plt::xlabel("x [m]");
-        // plt::ylabel("y [m]");
-        // plt::set_zlabel("z [m]"); // set_zlabel rather than just zlabel, in accordance with the Axes3D method
-        // plt::xlim(-10, 73);
-        // plt::ylim(-2, 25);
-        // plt::legend();
-        // plt::show();
     }
 
     double Map::findNearestTheta(double theta, Eigen::Vector3d & position){
