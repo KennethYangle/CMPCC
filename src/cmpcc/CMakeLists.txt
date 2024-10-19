@@ -16,6 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
 
 find_package(yaml-cpp)
 find_package(osqp REQUIRED)
+find_package(PythonLibs REQUIRED)
 
 catkin_package()
 
@@ -39,7 +40,7 @@ add_executable(corridor_test
     src/bezier_base.cpp
     src/my_spline.cpp
     src/corridor.cpp)
-set(Python_INCLUDE_DIRS "/usr/include/python2.7")
+include_directories(${PYTHON_INCLUDE_DIRS})
 target_include_directories(corridor_test PRIVATE ${Python_INCLUDE_DIRS})
 add_dependencies(corridor_test ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(corridor_test ${catkin_LIBRARIES} ${Python_LIBRARIES} yaml-cpp)

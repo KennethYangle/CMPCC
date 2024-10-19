@@ -17,6 +17,7 @@ find_package(catkin REQUIRED COMPONENTS
   swarm_msgs
 )
 find_package(yaml-cpp)
+find_package(PythonLibs REQUIRED)
 
 catkin_package()
 
@@ -44,7 +45,7 @@ target_link_libraries(path_finding_node
 add_executable(time_optimal_PMM_node
   src/time_optimal_PMM_test.cpp
   src/time_optimal_PMM.cpp)
-set(Python_INCLUDE_DIRS "/usr/include/python2.7")
+include_directories(${PYTHON_INCLUDE_DIRS})
 target_include_directories(time_optimal_PMM_node PRIVATE ${Python_INCLUDE_DIRS})
 target_link_libraries(time_optimal_PMM_node 
   ${catkin_LIBRARIES}
