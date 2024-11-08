@@ -219,8 +219,8 @@ class Utils(object):
         # 两种用法：1）给定世界系下固定的n_td，限定打击方向；2）相对光轴一向量，随相机运动
         # n_td = np.array([np.cos(yaw_d), np.sin(yaw_d), 0], dtype=np.float64)
         n_td = np.array([np.cos(pos_info["mav_yaw"]), np.sin(pos_info["mav_yaw"]), 0.], dtype=np.float64)
-        v_1 = max(1.0 - pos_i[2]/100., 0.5) * (n_eo - n_td)   # n_t -> n_td
-        v_2 = 1.0 * n_td            # v   -> n_td
+        v_1 = max(1.0 - pos_i[2]/200., 0.8) * (n_eo - n_td)   # n_t -> n_td
+        v_2 = 0.9 * n_td            # v   -> n_td
 
         v_d = v_1 + v_2
         v_d /= np.linalg.norm(v_d)
