@@ -1,0 +1,21 @@
+MODE: "Simulation"  # "Simulation" or "RealFlight"
+IsRC: false
+
+particle_num: 1000
+target_num: 5
+
+mcl_params:
+  alpha_1: 0.005      # uncertainty weight, target velocity
+  alpha_2: 0.000   # rot:-trans
+  alpha_3: 20      # trans:-trans
+  alpha_4: 0.01    # trans:-rot
+  init_pos_conv: 2.0
+  init_vel_conv: 1.0
+  sigma_p: 0.1
+
+target:
+  - { p_x: 2.0, p_y: 5.0, p_z: 3.0, v_x: 0.0, v_y: 0.0, v_z: 0.8 }
+  - { p_x: 10.0, p_y: 7.0, p_z: 6.0, v_x: 0.3, v_y: 0.1, v_z: 1.0 }
+  - { p_x: -3.0, p_y: 3.0, p_z: 8.0, v_x: 0.2, v_y: -0.1, v_z: 0.9 }
+  - { p_x: 5.0, p_y: 10.0, p_z: 5.0, v_x: 0.0, v_y: 0.0, v_z: 1.0 }
+  - { p_x: 1.0, p_y: 11.0, p_z: 7.0, v_x: 1.0, v_y: 0.1, v_z: 0.5 }

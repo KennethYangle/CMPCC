@@ -1,0 +1,5 @@
+<launch>
+  	<env name="ROSCONSOLE_CONFIG_FILE" value="$(find params)/rosconsole.config"/>
+	<rosparam command="load" file="$(find params)/camera_params_csi.yaml" />
+	<rosparam command="load" file="$(find params)/mcl_filter_params_real.yaml" />
+</launch>

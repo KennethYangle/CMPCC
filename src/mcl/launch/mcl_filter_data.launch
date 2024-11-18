@@ -1,0 +1,21 @@
+<launch>
+  <arg name="mav_id" default="1" />
+  <arg name="mav_num" default="2" />
+  <arg name="topics" default="/d435i/color/image_raw /csi_cam/img/compressed /mavros/local_position/pose /mavros/local_position/velocity_local /mavros/imu/data_raw /mavros/rc/in /mavros/setpoint_velocity/cmd_vel /mavros/state /tracker/pos_image /mavros/setpoint_raw/local /expect_target_pos /interceptors_pose  /drone_1/mavros/local_position/pose /drone_1/mavros/local_position/velocity_local /drone_1/tracker/pos_image /drone_2/mavros/local_position/pose /drone_2/mavros/local_position/velocity_local /drone_2/tracker/pos_image /drone_3/mavros/local_position/pose /drone_3/mavros/local_position/velocity_local /drone_3/tracker/pos_image /drone_4/mavros/local_position/pose /drone_5/mavros/local_position/pose /drone_6/mavros/local_position/pose" />
+  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find mcl)/config/rosconsole.config"/>
+  <rosparam file="$(find mcl)/config/mcl_filter_params_real.yaml" command="load" />
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find mcl)/config/mcl.rviz" />
+  
+  <node name="mcl_node" pkg="mcl" type="mcl_node" output="screen">
+        <param name="mav_id" value="$(arg mav_id)"/>
+        <param name="mav_num" value="$(arg mav_num)"/>
+  </node>
+  <node pkg="decision" type="allocation.py" name="allocation_node_$(arg mav_id)" output="screen">
+        <param name="mav_id" value="$(arg mav_id)"/>
+        <param name="mav_num" value="$(arg mav_num)"/>
+  </node>
+  <![CDATA[   
+  <node pkg="rosbag" type="play" name="bag_play" args="/mnt/hgfs/杨坤_BY2103058/智能院/闫村实验二次打击-230709/0710-1140mcl/fly_mcl_2023-07-10-11-41-55.bag -s 41 -r 0.3 --topics $(arg topics)" />
+  ]]>
+  <node pkg="rosbag" type="play" name="bag_play" args="/mnt/hgfs/E/大文件/202401固安实验/2401241600/drone6-fly_coop_2024-01-24-15-47-14.bag -s 225 --duration=39 -r 0.5 --topics $(arg topics)" />
+</launch>

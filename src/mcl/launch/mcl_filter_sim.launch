@@ -1,0 +1,12 @@
+<launch>
+  <arg name="mav_id" default="1" />
+  <arg name="mav_num" default="3" />
+  <env name="ROSCONSOLE_CONFIG_FILE" value="$(find mcl)/config/rosconsole.config"/>
+  <rosparam file="$(find mcl)/config/mcl_filter_params_sim.yaml" command="load" />
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find mcl)/config/mcl.rviz" />
+  
+  <node name="mcl_node" pkg="mcl" type="mcl_node" output="screen">
+      <param name="mav_id" value="$(arg mav_id)"/>
+      <param name="mav_num" value="$(arg mav_num)"/>
+  </node>
+</launch>

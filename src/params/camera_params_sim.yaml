@@ -1,7 +1,7 @@
 camera:
   img_width: 640
   img_height: 480
-  img_f: 320
+  img_f: 85.74
   img_distance: 50
 
 Debug:
