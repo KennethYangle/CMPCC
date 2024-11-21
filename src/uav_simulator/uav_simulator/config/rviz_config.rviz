@@ -287,7 +287,7 @@ Visualization Manager:
       Marker Topic: /target_marker
       Name: particles
       Namespaces:
-        Target points: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -295,7 +295,7 @@ Visualization Manager:
       Marker Topic: /center_marker
       Name: Estimated Balloons
       Namespaces:
-        Estimate targets position: true
+        {}
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -304,6 +304,14 @@ Visualization Manager:
       Name: Detected features
       Namespaces:
         {}
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /tracker/3D_estimation_marker
+      Name: tarcker_3D_estimation
+      Namespaces:
+        target_markers: true
       Queue Size: 100
       Value: true
   Enabled: true
@@ -327,7 +335,7 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 115.95052337646484
+      Distance: 112.63520050048828
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
@@ -342,10 +350,10 @@ Visualization Manager:
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.039796967059373856
+      Pitch: 0.21979691088199615
       Target Frame: world
       Value: XYOrbit (rviz)
-      Yaw: 4.388219356536865
+      Yaw: 4.263232231140137
     Saved:
       - Class: rviz/ThirdPersonFollower
         Distance: 4.048277378082275

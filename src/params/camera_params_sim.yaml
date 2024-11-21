@@ -3,8 +3,10 @@ camera:
   img_height: 480
   img_f: 85.74         # 150 degree FOV
   img_distance: 50
+  R_cam_body: [0.0, 0.0, 1.0, -1.0, 0.0, 0.0, 0.0, -1.0, 0.0] # 相机坐标系(RDF)到机体坐标系(FLU)的旋转矩阵
 
 Debug:
   is_show_image: false # main.cpp
   is_show_rgb: true    # img_pub.py
   is_show_hsv: false
+  is_show_3D_estimation: true
