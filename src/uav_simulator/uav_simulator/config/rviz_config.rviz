@@ -11,7 +11,8 @@ Panels:
         - /Planning1/many ReplanTraj1
         - /Planning1/initialReplanPts1
         - /Sensors1/SensedPoints_gpu1
-        - /Marker1
+        - /Balloons1
+        - /particles1
       Splitter Ratio: 0.5777778029441833
     Tree Height: 874
   - Class: rviz/Selection
@@ -276,9 +277,33 @@ Visualization Manager:
     - Class: rviz/Marker
       Enabled: true
       Marker Topic: /rviz/obj
-      Name: Marker
+      Name: Balloons
       Namespaces:
         "": true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /target_marker
+      Name: particles
+      Namespaces:
+        Target points: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /center_marker
+      Name: Estimated Balloons
+      Namespaces:
+        Estimate targets position: true
+      Queue Size: 100
+      Value: true
+    - Class: rviz/MarkerArray
+      Enabled: true
+      Marker Topic: /feature_marker
+      Name: Detected features
+      Namespaces:
+        {}
       Queue Size: 100
       Value: true
   Enabled: true
@@ -302,25 +327,25 @@ Visualization Manager:
   Views:
     Current:
       Class: rviz/XYOrbit
-      Distance: 29.572378158569336
+      Distance: 115.95052337646484
       Enable Stereo Rendering:
         Stereo Eye Separation: 0.05999999865889549
         Stereo Focal Distance: 1
         Swap Stereo Eyes: false
         Value: false
       Focal Point:
-        X: 0.29717594385147095
-        Y: -6.039834976196289
-        Z: 7.161857865867205e-6
+        X: 12.284135818481445
+        Y: 18.353254318237305
+        Z: 8.98037978913635e-6
       Focal Shape Fixed Size: true
       Focal Shape Size: 0.05000000074505806
       Invert Z Axis: false
       Name: Current View
       Near Clip Distance: 0.009999999776482582
-      Pitch: 0.1747969388961792
+      Pitch: 0.039796967059373856
       Target Frame: world
       Value: XYOrbit (rviz)
-      Yaw: 4.233218669891357
+      Yaw: 4.388219356536865
     Saved:
       - Class: rviz/ThirdPersonFollower
         Distance: 4.048277378082275

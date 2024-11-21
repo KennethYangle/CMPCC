@@ -60,7 +60,7 @@ then
     sleep 0.5s
 
     # 目标检测
-    gnome-terminal --tab -t "Detection in Sim" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun simulation img_pub.py;exec bash"
+    gnome-terminal --tab -t "Detection in Sim" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun detection color_det;exec bash"
     sleep 1s
 else
     # 载入相机和滤波器参数
@@ -77,12 +77,12 @@ else
     sleep 10s
 fi
 
-# 目标运动估计
-gnome-terminal --tab -t "MCL" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch cmpcc rviz_view.launch;exec bash"
-
+# # 目标运动估计
+# gnome-terminal --tab -t "MCL" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun mcl mcl_node;exec bash"
+# sleep 1s
 
 # Rviz可视化，可选
-gnome-terminal --tab -t "Rviz" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun mcl mcl_node;exec bash"
+gnome-terminal --tab -t "Rviz" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch cmpcc rviz_view.launch;exec bash"
 sleep 2s
 
 # 路径、轨迹规划 + MPCC控制

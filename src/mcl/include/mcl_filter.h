@@ -100,13 +100,10 @@ double distance(const Eigen::Vector3d& a, const Eigen::Vector3d& b);
 void target_resampling();
 void target_clustering();
 void target_balance();
-void publishInterceptors();
 void publishTargetMarkers();
 void publishBarycenter();
-void publishTargetBarycenter();
 void publishCenterMarkers();
 void publishDetectedFeatures();
-void publishExpectedTarget();
 
 
 class Robot {

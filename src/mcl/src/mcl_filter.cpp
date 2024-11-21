@@ -2,16 +2,13 @@
 
 // Create a set of particles
 vector<Robot> p;
-
-cv::Mat imgCallback;
-ros::Subscriber img_show_sub, expect_target_sub, rc_sub;
-std::vector<ros::Subscriber> pose_subs, img_subs, target_pose_subs;
-ros::Publisher pub_center_points, pub_target_center_points, pub_interceptors, pub_target_marker, pub_center_marker, pub_feature_marker, pub_expect_target_marker;
+ros::Publisher pub_center_points, pub_target_marker, pub_center_marker, pub_feature_marker;
 ros::Time last_img_stamp(0.);
+
 
 void mav_pose_cb(const geometry_msgs::PoseStamped::ConstPtr &msg)
 {
-    if (ch8 == 0) return;
+    // if (ch8 == 0) return;
 
     mav_pos(0) = msg->pose.position.x;
     mav_pos(1) = msg->pose.position.y;
@@ -82,7 +79,6 @@ void mav_img_cb(const swarm_msgs::BoundingBoxes::ConstPtr &msg)
     target_clustering();            // Resampling Step: Clustering
     // ROS_INFO_STREAM("Enter publishBarycenter.");
     publishBarycenter();
-    publishTargetBarycenter();
     // ROS_INFO_STREAM("Enter target_balance.");
     target_balance();               // Resampling Step: Balance
 
@@ -235,30 +231,14 @@ void publishBarycenter()
     pub_center_points.publish(cps);
 }
 
-void publishTargetBarycenter()
-{
-    pub_target_center_points.publish(target_cps);
-}
-
-
 void visualization_cb(const ros::TimerEvent& event)
 {
     double dt = (event.current_real - event.last_real).toSec();
     if (dt > 1e5) dt = 0.;
 
-    publishInterceptors();
     publishTargetMarkers();
     publishCenterMarkers();
     publishDetectedFeatures();
-}
-
-// Draw interceptors' pose arrow
-void publishInterceptors()
-{
-    mav_pos_Array.header.stamp = ros::Time::now();
-    mav_pos_Array.header.frame_id = "world";
-    
-    pub_interceptors.publish(mav_pos_Array);
 }
 
 // Draw target particles
@@ -289,7 +269,7 @@ void publishTargetMarkers()
 }
 
 
-// Draw target particles on sphere
+// Draw estimated target position (Barycenter)
 void publishCenterMarkers()
 {
     visualization_msgs::MarkerArray markers;//定义MarkerArray对象
@@ -364,8 +344,6 @@ void get_ROS_param(ros::NodeHandle& nh)
     particle_num *= target_num;
     target_pos.reserve(target_num);
     target_vel.reserve(target_num);
-    target_pose_subs = std::vector<ros::Subscriber>(target_num);
-    target_cps.points = std::vector<geometry_msgs::Point>(target_num);
     ROS_INFO_STREAM_ONCE("particle_num: " << particle_num);
 
     nh.param<double>("/mcl_params/alpha_1", params["alpha_1"], 0.0);
@@ -420,7 +398,7 @@ int main(int argc, char **argv)
                 ("mavros/local_position/velocity_local", 10, mav_vel_cb);//50hz
     ros::Subscriber img_sub = nh.subscribe<swarm_msgs::BoundingBoxes>
                 ("tracker/pos_image", 10, mav_img_cb);          //23hz
-    rc_sub = nh.subscribe<mavros_msgs::RCIn>("/mavros/rc/in", 2, rcin_cb);
+    ros::Subscriber rc_sub = nh.subscribe<mavros_msgs::RCIn>("/mavros/rc/in", 2, rcin_cb);
 
     // Timer
     ros::Timer mcl_timer = nh.createTimer(ros::Duration(1.0/30), mcl_cb);
@@ -428,13 +406,11 @@ int main(int argc, char **argv)
 
     // Publisher
     pub_center_points = nh.advertise<swarm_msgs::CenterPoints>("/center_points", 1, true);
-    pub_target_center_points = nh.advertise<swarm_msgs::CenterPoints>("/target/center_points", 1, true);
-    pub_interceptors = nh.advertise<geometry_msgs::PoseArray>("/interceptors_pose", 1, true);
+    // Visualization Publisher
     pub_target_marker = nh.advertise<visualization_msgs::MarkerArray>("/target_marker", 1, true);
     pub_center_marker = nh.advertise<visualization_msgs::MarkerArray>("/center_marker", 1, true);
     pub_feature_marker = nh.advertise<visualization_msgs::MarkerArray>("/feature_marker", 1, true);
-    pub_expect_target_marker = nh.advertise<visualization_msgs::MarkerArray>("/expect_target_marker", 1, true);
-    ROS_INFO_STREAM("Create Timer & Publisher finish.");
+    ROS_INFO_STREAM("Create Subscriber, Timer & Publisher finish.");
 
 
     // ros::spin();

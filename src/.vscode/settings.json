@@ -76,6 +76,8 @@
         "set": "cpp",
         "string": "cpp",
         "string_view": "cpp",
-        "*.ipp": "cpp"
-    }
+        "*.ipp": "cpp",
+        "forward_list": "cpp"
+    },
+    "ros.distro": "melodic"
 }

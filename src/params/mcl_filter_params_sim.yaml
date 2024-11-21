@@ -3,6 +3,7 @@ IsRC: false
 
 particle_num: 1000
 target_num: 5
+target_size: 1.0   # diameter
 
 mcl_params:
   alpha_1: 0.005      # uncertainty weight, target velocity
