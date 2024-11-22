@@ -1,0 +1,5 @@
+<launch>
+	<!-- Launches the visual positioning system driver -->
+	<node name="vps_driver_node" pkg="rflysim_ros_pkg" type="vps_driver_node" required="true"/>
+	<param name="vps_type" value="0" type="int" />
+</launch>

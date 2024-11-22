@@ -10,4 +10,5 @@
         <param name="encoding" value="bgr8"/>
         <param name="topic_name" value="/camera/left"/>
    </node>
+	<node name="vps_driver_node" pkg="rflysim_ros_pkg" type="vps_driver_node" required="true"/>
 </launch>

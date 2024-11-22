@@ -160,6 +160,8 @@ add_executable(image_receive src/image_receive.cpp)
 
 add_executable(image_receive_newprotocol src/image_receive_newprotocol.cpp)
 
+add_executable(vps_driver_node src/vps2ros.cpp)
+
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -177,6 +179,9 @@ add_executable(image_receive_newprotocol src/image_receive_newprotocol.cpp)
 target_link_libraries(image_receive ${catkin_LIBRARIES})
 
 target_link_libraries(image_receive_newprotocol ${catkin_LIBRARIES})
+
+target_link_libraries(vps_driver_node
+  ${catkin_LIBRARIES})
 
 #############
 ## Install ##
