@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 2.8...3.27)
 project(mcl)
 
 ## Compile as C++11, supported in ROS Kinetic and newer
-add_compile_options(-std=c++11 -I/usr/include/python2.7 -lpython2.7)
+set(CMAKE_CXX_STANDARD 11)
 
 ## Find catkin macros and libraries
 ## if COMPONENTS list like find_package(catkin REQUIRED COMPONENTS xyz)
@@ -22,6 +22,7 @@ find_package(catkin REQUIRED COMPONENTS
 )
 find_package(Eigen3)
 find_package(OpenCV REQUIRED)
+find_package(PythonLibs REQUIRED)
 include_directories(${EIGEN3_INCLUDE_DIR})
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
@@ -140,4 +141,10 @@ include_directories(../../matplotlib)
 # )
 
 add_executable(mcl_node src/mcl_filter.cpp)
-target_link_libraries(mcl_node ${catkin_LIBRARIES} ${OpenCV_LIBS})
+include_directories(${PYTHON_INCLUDE_DIRS})
+target_include_directories(mcl_node PRIVATE ${Python_INCLUDE_DIRS})
+target_link_libraries(mcl_node 
+  ${catkin_LIBRARIES} 
+  ${OpenCV_LIBS}
+  ${Python_LIBRARIES}
+  )
