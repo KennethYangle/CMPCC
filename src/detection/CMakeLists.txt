@@ -15,7 +15,17 @@ find_package(catkin REQUIRED COMPONENTS
   std_msgs
   swarm_msgs
 )
-find_package(OpenCV)
+if (EXISTS "/home/nvidia/opencv-4.5.4-D/lib/cmake/opencv4")
+  SET(OpenCV_DIR  ~/opencv-4.5.4-D/lib/cmake/opencv4/)
+  find_package(OpenCV 4.5.4 REQUIRED)
+else()
+  find_package(OpenCV)
+endif()
+message(STATUS "library status:")
+message(STATUS "OpenCV_VERSION: ${OpenCV_VERSION}")
+message(STATUS "OpenCV_LIBS: ${OpenCV_LIBS}")
+message(STATUS "OpenCV_INCLUDE_DIRS: ${OpenCV_INCLUDE_DIRS}")
+message(STATUS "OpenCV_DIR: ${OpenCV_DIR}")
 
 ## System dependencies are found with CMake's conventions
 # find_package(Boost REQUIRED COMPONENTS system)
