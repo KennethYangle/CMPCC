@@ -9,6 +9,7 @@
 #include <opencv2/opencv.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <algorithm>
+#include <deque>
 #include <tf/tf.h>
 
 // 是否显示图像
@@ -24,8 +25,11 @@ cv::Mat R_cam_body(3, 3, CV_64F); // 相机到机体的旋转矩阵
 double img_f, target_size;
 int img_width, img_height;
 
-// 无人机姿态
-geometry_msgs::PoseStamped mav_pose;
+// 时间偏移参数
+double time_offset = 0.0;
+
+// 无人机姿态缓冲队列
+std::deque<geometry_msgs::PoseStamped> pose_buffer;
 cv::Mat R_body_world_cv(3, 3, CV_64F);
 cv::Mat T_body_world;
 
@@ -74,23 +78,91 @@ void publishTargetMarkers(swarm_msgs::BoundingBoxes img_pos) {
     marker_pub.publish(marker_array);
 }
 
+// 将两个时间点的位姿进行线性插值
+geometry_msgs::PoseStamped interpolatePose(const geometry_msgs::PoseStamped& pose1, const geometry_msgs::PoseStamped& pose2, double timestamp) {
+    geometry_msgs::PoseStamped interpolated_pose;
+
+    // 时间插值比例
+    double t1 = pose1.header.stamp.toSec();
+    double t2 = pose2.header.stamp.toSec();
+    double ratio = (timestamp - t1) / (t2 - t1);
+
+    // 平移插值
+    interpolated_pose.pose.position.x = pose1.pose.position.x + ratio * (pose2.pose.position.x - pose1.pose.position.x);
+    interpolated_pose.pose.position.y = pose1.pose.position.y + ratio * (pose2.pose.position.y - pose1.pose.position.y);
+    interpolated_pose.pose.position.z = pose1.pose.position.z + ratio * (pose2.pose.position.z - pose1.pose.position.z);
+
+    // 四元数插值
+    tf::Quaternion q1(pose1.pose.orientation.x, pose1.pose.orientation.y, pose1.pose.orientation.z, pose1.pose.orientation.w);
+    tf::Quaternion q2(pose2.pose.orientation.x, pose2.pose.orientation.y, pose2.pose.orientation.z, pose2.pose.orientation.w);
+    tf::Quaternion q_interpolated = q1.slerp(q2, ratio);
+
+    interpolated_pose.pose.orientation.x = q_interpolated.x();
+    interpolated_pose.pose.orientation.y = q_interpolated.y();
+    interpolated_pose.pose.orientation.z = q_interpolated.z();
+    interpolated_pose.pose.orientation.w = q_interpolated.w();
+    interpolated_pose.header.stamp = ros::Time().fromSec(timestamp);
+
+    return interpolated_pose;
+}
+
+// 根据图像时间戳获取最近的插值位姿
+bool getInterpolatedPose(double img_timestamp, geometry_msgs::PoseStamped& interpolated_pose) {
+    if (pose_buffer.size() < 2) {
+        ROS_WARN("Not enough pose data for interpolation.");
+        return false;
+    }
+
+    // 寻找最接近的两个时间戳
+    for (size_t i = 0; i < pose_buffer.size() - 1; ++i) {
+        double t1 = pose_buffer[i].header.stamp.toSec();
+        double t2 = pose_buffer[i + 1].header.stamp.toSec();
+
+        if (t1 <= img_timestamp && img_timestamp <= t2) {
+            interpolated_pose = interpolatePose(pose_buffer[i], pose_buffer[i + 1], img_timestamp);
+            return true;
+        }
+    }
+
+    ROS_WARN("Image timestamp out of range of pose buffer.");
+    return false;
+}
+
 // 无人机姿态回调函数
 void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
-    mav_pose = *msg;
+    pose_buffer.push_back(*msg);
+
+    // 保持缓冲区大小
+    double buffer_duration = 1.0; // 缓冲1秒内的位姿
+    double current_time = ros::Time::now().toSec();
+    while (!pose_buffer.empty() && (current_time - pose_buffer.front().header.stamp.toSec() > buffer_duration)) {
+        pose_buffer.pop_front();
+    }
+}
+
+// 图像回调函数
+void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
+    // 获取时间偏移后的图像时间戳
+    double img_timestamp = msg->header.stamp.toSec() + time_offset;
+
+    // 根据图像时间戳获得匹配的位姿
+    geometry_msgs::PoseStamped interpolated_pose;
+    if (!getInterpolatedPose(img_timestamp, interpolated_pose)) {
+        ROS_WARN("Failed to get interpolated pose for image.");
+        return;
+    }
 
     // 转换到世界坐标系
-    tf::Quaternion q(mav_pose.pose.orientation.x, mav_pose.pose.orientation.y, mav_pose.pose.orientation.z, mav_pose.pose.orientation.w);
+    tf::Quaternion q(interpolated_pose.pose.orientation.x, interpolated_pose.pose.orientation.y, interpolated_pose.pose.orientation.z, interpolated_pose.pose.orientation.w);
     tf::Matrix3x3 R_body_world(q);
 
     for (int i = 0; i < 3; ++i)
         for (int j = 0; j < 3; ++j)
             R_body_world_cv.at<double>(i, j) = R_body_world[i][j];
 
-    T_body_world = (cv::Mat_<double>(3, 1) << mav_pose.pose.position.x, mav_pose.pose.position.y, mav_pose.pose.position.z);
-}
-
-// 图像回调函数
-void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
+    T_body_world = (cv::Mat_<double>(3, 1) << interpolated_pose.pose.position.x, interpolated_pose.pose.position.y, interpolated_pose.pose.position.z);
+    
+    // 开始图像处理
     swarm_msgs::BoundingBoxes img_pos;
     img_pos.header.stamp = ros::Time::now();
     cv_bridge::CvImagePtr cv_ptr;
@@ -216,6 +288,7 @@ int main(int argc, char** argv) {
     nh.param("/Debug/is_show_rgb", is_show_rgb, false);
     nh.param("/Debug/is_show_hsv", is_show_hsv, false);
     nh.param("/Debug/is_show_3D_estimation", is_show_3D_estimation, false);
+    nh.param("/camera/time_offset", time_offset, 0.0);
     nh.getParam("/camera/img_width", img_width);
     nh.getParam("/camera/img_height", img_height);
     nh.getParam("/camera/img_f", img_f);
