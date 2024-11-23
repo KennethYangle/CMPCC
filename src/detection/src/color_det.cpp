@@ -114,18 +114,36 @@ bool getInterpolatedPose(double img_timestamp, geometry_msgs::PoseStamped& inter
     }
 
     // 寻找最接近的两个时间戳
-    for (size_t i = 0; i < pose_buffer.size() - 1; ++i) {
-        double t1 = pose_buffer[i].header.stamp.toSec();
-        double t2 = pose_buffer[i + 1].header.stamp.toSec();
+    double t_start = pose_buffer.front().header.stamp.toSec();
+    double t_end = pose_buffer.back().header.stamp.toSec();
 
-        if (t1 <= img_timestamp && img_timestamp <= t2) {
-            interpolated_pose = interpolatePose(pose_buffer[i], pose_buffer[i + 1], img_timestamp);
-            return true;
+    if (img_timestamp > t_end) {
+        ROS_WARN("Image timestamp out of range of pose buffer. t_start: %.6f, t_end: %.6f, img_timestamp: %.6f",
+                 t_start, t_end, img_timestamp);
+        interpolated_pose = pose_buffer.back();
+        return true;
+    }
+    if (img_timestamp < t_start) {
+        ROS_ERROR("Pose buffer too short! t_start: %.6f, t_end: %.6f, img_timestamp: %.6f",
+                 t_start, t_end, img_timestamp);
+        interpolated_pose = pose_buffer.front();
+        return false;
+    }
+
+    size_t low = 0, high = pose_buffer.size() - 1;
+    while (low < high - 1) { // 二分查找
+        size_t mid = low + (high - low) / 2;
+        double mid_time = pose_buffer[mid].header.stamp.toSec();
+
+        if (img_timestamp < mid_time) {
+            high = mid;
+        } else {
+            low = mid;
         }
     }
 
-    ROS_WARN("Image timestamp out of range of pose buffer.");
-    return false;
+    interpolated_pose = interpolatePose(pose_buffer[low], pose_buffer[high], img_timestamp);
+    return true;
 }
 
 // 无人机姿态回调函数
@@ -142,26 +160,6 @@ void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
 
 // 图像回调函数
 void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
-    // 获取时间偏移后的图像时间戳
-    double img_timestamp = msg->header.stamp.toSec() + time_offset;
-
-    // 根据图像时间戳获得匹配的位姿
-    geometry_msgs::PoseStamped interpolated_pose;
-    if (!getInterpolatedPose(img_timestamp, interpolated_pose)) {
-        ROS_WARN("Failed to get interpolated pose for image.");
-        return;
-    }
-
-    // 转换到世界坐标系
-    tf::Quaternion q(interpolated_pose.pose.orientation.x, interpolated_pose.pose.orientation.y, interpolated_pose.pose.orientation.z, interpolated_pose.pose.orientation.w);
-    tf::Matrix3x3 R_body_world(q);
-
-    for (int i = 0; i < 3; ++i)
-        for (int j = 0; j < 3; ++j)
-            R_body_world_cv.at<double>(i, j) = R_body_world[i][j];
-
-    T_body_world = (cv::Mat_<double>(3, 1) << interpolated_pose.pose.position.x, interpolated_pose.pose.position.y, interpolated_pose.pose.position.z);
-    
     // 开始图像处理
     swarm_msgs::BoundingBoxes img_pos;
     img_pos.header.stamp = ros::Time::now();
@@ -193,6 +191,26 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg) {
     cv::Mat labels, stats, centroids;
     int num_labels = cv::connectedComponentsWithStats(th, labels, stats, centroids);
 
+    // 获取时间偏移后的图像时间戳
+    double img_timestamp = msg->header.stamp.toSec() + time_offset;
+
+    // 根据图像时间戳获得匹配的位姿
+    geometry_msgs::PoseStamped interpolated_pose;
+    if (!getInterpolatedPose(img_timestamp, interpolated_pose)) {
+        ROS_WARN("Failed to get interpolated pose for image.");
+        return;
+    }
+
+    // 转换到世界坐标系
+    tf::Quaternion q(interpolated_pose.pose.orientation.x, interpolated_pose.pose.orientation.y, interpolated_pose.pose.orientation.z, interpolated_pose.pose.orientation.w);
+    tf::Matrix3x3 R_body_world(q);
+
+    for (int i = 0; i < 3; ++i)
+        for (int j = 0; j < 3; ++j)
+            R_body_world_cv.at<double>(i, j) = R_body_world[i][j];
+
+    T_body_world = (cv::Mat_<double>(3, 1) << interpolated_pose.pose.position.x, interpolated_pose.pose.position.y, interpolated_pose.pose.position.z);
+    
     int id = 0;
     for (int i = 1; i < num_labels; ++i) { // 0是背景
         int left = stats.at<int>(i, cv::CC_STAT_LEFT);
@@ -310,6 +328,7 @@ int main(int argc, char** argv) {
     ROS_INFO("is_show_rgb: %d", is_show_rgb);
     ROS_INFO("is_show_hsv: %d", is_show_hsv);
     ROS_INFO("is_show_3D_estimation: %d", is_show_3D_estimation);
+    ROS_INFO("time_offset: %f", time_offset);
 
     // 订阅图像话题
     ros::Subscriber image_sub = nh.subscribe("/camera/left", 1, imageCallback);

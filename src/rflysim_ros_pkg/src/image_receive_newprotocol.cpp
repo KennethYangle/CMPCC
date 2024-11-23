@@ -167,7 +167,9 @@ int main(int argc, char *argv[])
 	
 	while (ros::ok)
     {
-
+        std_msgs::Header hd;
+        hd.stamp = ros::Time::now();
+        hd.frame_id = FRAME_ID; // "camera_color_optical_frame"
 	
         int recvpack = recvfrom(sockfd, data_pack, 62000, 0, (struct sockaddr *)&addr, &addr_len);
 
@@ -321,14 +323,10 @@ int main(int argc, char *argv[])
                 {
                     image = imdecode(Mat(1, recvd_size, CV_8UC1, data_total), IMREAD_ANYDEPTH);
                 }
-
-                // image = imdecode(white, IMREAD_COLOR);  //弄出一张白图，不需要imdecode这一步。
-                //printf("image中元素的个数:%d\n", image.total());
-                std_msgs::Header hd;
-                hd.stamp.sec = imgtimestampsec;
-                hd.stamp.nsec = imgtimestampnsec;
-                // hd.frame_id = "camera_color_optical_frame";
-                hd.frame_id = FRAME_ID;
+                
+                // hd.stamp.sec = imgtimestampsec;
+                // hd.stamp.nsec = imgtimestampnsec;
+                
                 sensor_msgs::ImagePtr msg = cv_bridge::CvImage(hd, ENCODING, image).toImageMsg();
                 pub.publish(msg);
 			
