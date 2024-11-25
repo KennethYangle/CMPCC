@@ -13,7 +13,7 @@
 
 horizon: 20
 corridorConstrains: 0
-qVTheta: 0.2
+qVTheta: 0.005
 # 2 order:
 # stateUpper: [ 100,  3,  100,  3,  100,  3,  100,  100]
 # stateLower: [-100, -3, -100, -3, -100, -3, -0.1, -0.1]

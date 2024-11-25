@@ -30,7 +30,7 @@ fi
 
 # Workspace path
 SH_DIR=$(dirname $0)
-WS_DIR=$(realpath "${SH_DIR}/..")
+WS_DIR=$(realpath "${SH_DIR}/../../..")
 echo "Workspace Directory: ${WS_DIR}"
 
 # RflySim仿真参数
@@ -54,15 +54,11 @@ then
     # RflySim 接口
     gnome-terminal --tab -t "RflySim Obj interface" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch rflysim_ros_pkg obj.launch ip:=${UE4IP};exec bash"
     sleep 0.5s
-    gnome-terminal --tab -t "RflySim Image interface" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch rflysim_ros_pkg rgb_newprotocol_cpp.launch;exec bash"
 
     # 仿真气球运动
-    gnome-terminal --tab -t "Sim Balloon Motion" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun path sim_balloon_node;exec bash"
+    gnome-terminal --tab -t "Sim Balloon Motion" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun path sim_balloon_node _balloon_motion_file:=${WS_DIR}/src/examples/1_circular/balloon_motion.yaml;exec bash"
     sleep 0.5s
 
-    # 目标检测
-    gnome-terminal --tab -t "Detection in Sim" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun detection color_det;exec bash"
-    sleep 1s
 else
     # 载入相机和滤波器参数
     gnome-terminal --tab -t "Load Camera & Filter Param" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch params load_param_real.launch;exec bash"
@@ -70,17 +66,8 @@ else
     # mavros
     gnome-terminal --tab -t "Mavros" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch mavros px4.launch fcu_url:="/dev/ttyACM0:115200";exec bash"
     sleep 2s
-
-    # 目标检测
-    gnome-terminal -x bash -c "source ${WS_DIR}/devel/setup.bash; roslaunch csi_cam main.launch; exec bash"
-    sleep 10s
-    gnome-terminal -x bash -c "source ${WS_DIR}/devel/setup.bash; roslaunch det det.launch; exec bash"
-    sleep 10s
 fi
 
-# # 目标运动估计
-# gnome-terminal --tab -t "MCL" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun mcl mcl_node;exec bash"
-# sleep 1s
 
 # Rviz可视化，可选
 gnome-terminal --tab -t "Rviz" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch cmpcc rviz_view.launch;exec bash"
@@ -89,15 +76,10 @@ sleep 2s
 # 路径、轨迹规划 + MPCC控制
 gnome-terminal --tab -t "Path Finding" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun path path_finding_node;exec bash"
 sleep 1s
-# gnome-terminal --tab -t "Path Planning" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun cmpcc bezier.py;exec bash"
 gnome-terminal --tab -t "Path Planning" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun path path_planning_node;exec bash"
 sleep 1s
 gnome-terminal --tab -t "MPCC" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch cmpcc fly.launch;exec bash"
 sleep 2s
-
-# 拦截控制
-gnome-terminal --tab -t "Attack" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun offboard_pkg attack.py;exec bash"
-sleep 1s
 
 # mavros控制汇总
 gnome-terminal --tab -t "Offboard Main Node" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun offboard_pkg main_node;exec bash"

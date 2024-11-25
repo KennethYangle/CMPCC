@@ -1,0 +1,5 @@
+<launch>
+    <node name="sim_balloon_node" pkg="path" type="sim_balloon_node" output="screen">
+        <param name="balloon_motion_file" value="$(find params)/balloon_motion.yaml"/>
+    </node>
+</launch>

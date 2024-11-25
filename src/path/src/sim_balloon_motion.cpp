@@ -29,7 +29,13 @@ public:
         marker_pub = nh.advertise<visualization_msgs::Marker>("rviz/obj", 10);
         local_pos_sub = nh.subscribe<geometry_msgs::PoseStamped>("mavros/local_position/pose", 10, &SimBalloon::local_pos_cb, this);
 
-        std::string path = ros::package::getPath("params") + "/balloon_motion.yaml";
+        // Get the parameter from the parameter server, with a default path if not set
+        std::string path;
+        if (!ros::param::get("~balloon_motion_file", path)) {
+            path = ros::package::getPath("params") + "/balloon_motion.yaml";  // Default path
+        }
+        std::cout << "balloon_motion_file: " << path << std::endl;
+
         YAML::Node node = YAML::LoadFile(path);
 
         for (const YAML::Node& balloon_node : node["balloons"]) {
@@ -172,7 +178,7 @@ int main(int argc, char **argv) {
     ros::Time start_time = ros::Time::now();
     ros::Time last_time = ros::Time::now();
 
-    ros::Rate loop_rate(30); // 10Hz loop rate
+    ros::Rate loop_rate(30); // 30Hz loop rate
     while (ros::ok()) {
         // 前20s先不动
         ros::Time now_time = ros::Time::now();
