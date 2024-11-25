@@ -57,7 +57,7 @@ then
     gnome-terminal --tab -t "RflySim Image interface" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch rflysim_ros_pkg rgb_newprotocol_cpp.launch;exec bash"
 
     # 仿真气球运动
-    gnome-terminal --tab -t "Sim Balloon Motion" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun path sim_balloon_node;exec bash"
+    gnome-terminal --tab -t "Sim Balloon Motion" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun path sim_balloon_node _balloon_motion_file:=${WS_DIR}/src/params/balloon_motion.yaml;exec bash"
     sleep 0.5s
 
     # 目标检测
