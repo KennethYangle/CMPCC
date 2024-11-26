@@ -1,4 +1,4 @@
 balloons: 
   - pos: [3, 0, 3]
-    vel: [0, 1, 2]
+    vel: [0, 2, 1]
 impact_radius: 0.5

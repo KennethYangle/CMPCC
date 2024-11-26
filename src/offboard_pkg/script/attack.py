@@ -36,11 +36,9 @@ def mav_pose_cb(msg):
     mav_pos = [msg.pose.position.x, msg.pose.position.y, msg.pose.position.z]
     q0, q1, q2, q3 = msg.pose.orientation.w, msg.pose.orientation.x, msg.pose.orientation.y, msg.pose.orientation.z
     mav_yaw = math.atan2(2*(q0*q3 + q1*q2), 1-2*(q2*q2 + q3*q3))
-    R_ae = np.array([[q0**2+q1**2-q2**2-q3**2, 2*(q1*q2-q0*q3), 2*(q1*q3+q0*q2)],
+    mav_R = np.array([[q0**2+q1**2-q2**2-q3**2, 2*(q1*q2-q0*q3), 2*(q1*q3+q0*q2)],
                       [2*(q1*q2+q0*q3), q0**2-q1**2+q2**2-q3**2, 2*(q2*q3-q0*q1)],
                       [2*(q1*q3-q0*q2), 2*(q2*q3+q0*q1), q0**2-q1**2-q2**2+q3**2]])
-    R_ba = np.array([[0,1,0], [-1,0,0], [0,0,1]]) #mavros_coordinate to baselink_coordinate  // body to enu  # body: right-front-up3rpos_est_body)
-    mav_R = R_ae.dot(R_ba)
 
 def mav_vel_cb(msg):
     global mav_vel
@@ -115,13 +113,19 @@ if __name__=="__main__":
     while not rospy.is_shutdown():
         pos_info = {"mav_pos": mav_pos, "mav_vel": mav_vel, "mav_R": mav_R, "R_bc": np.array([[0,0,1], [1,0,0], [0,1,0]]), "mav_yaw": mav_yaw}
         
-        cmd = u.RotateAttackAccelerationController2(pos_info, pos_i, controller_reset)
-
-        command.header.stamp = rospy.Time.now()
-        command.acceleration.x = cmd[0]
-        command.acceleration.y = cmd[1]
-        command.acceleration.z = cmd[2]
-        command.yaw_dot = cmd[3]
+        if pos_i[0] > 0:
+            cmd = u.RotateAttackAccelerationController2(pos_info, pos_i, controller_reset)
+            command.header.stamp = rospy.Time.now()
+            command.acceleration.x = cmd[0]
+            command.acceleration.y = cmd[1]
+            command.acceleration.z = cmd[2]
+            command.yaw_dot = cmd[3]
+        else:
+            command.header.stamp = rospy.Time.now()
+            command.acceleration.x = 0
+            command.acceleration.y = 0
+            command.acceleration.z = 0
+            command.yaw_dot = 0
         local_acc_pub.publish(command)
 
         rate.sleep()

@@ -262,12 +262,13 @@ int main(int argc, char **argv)
     // move_to_init();
 
     if (MODE == "all") {
+        std::cout << "MODE: all" << std::endl;
         while (ros::ok())
         {
             // local_pva_target(mpcc_cmd.position.x, mpcc_cmd.position.y, mpcc_cmd.position.z, mpcc_cmd.velocity.x, mpcc_cmd.velocity.y, mpcc_cmd.velocity.z, mpcc_cmd.acceleration.x, mpcc_cmd.acceleration.y, mpcc_cmd.acceleration.z, mpcc_cmd.yaw_dot);
             w = attack_cmd.weight;
             mpcc_ax = mpcc_cmd.acceleration.x;  mpcc_ay = mpcc_cmd.acceleration.y;  mpcc_az = mpcc_cmd.acceleration.z;  mpcc_yr = mpcc_cmd.yaw_dot;
-            att_ax = attack_cmd.acceleration.x;  att_ay = attack_cmd.acceleration.z;  att_az = attack_cmd.acceleration.z;  att_yr = attack_cmd.yaw_dot;
+            att_ax = attack_cmd.acceleration.x;  att_ay = attack_cmd.acceleration.y;  att_az = attack_cmd.acceleration.z;  att_yr = attack_cmd.yaw_dot;
             local_acc_target((1-w)*mpcc_ax + w*att_ax, (1-w)*mpcc_ay + w*att_ay, (1-w)*mpcc_az + w*att_az, (1-w)*mpcc_yr + w*att_yr);
 
             ros::spinOnce();
@@ -275,6 +276,7 @@ int main(int argc, char **argv)
         }
     }
     else if (MODE == "path") {
+        std::cout << "MODE: path" << std::endl;
         while (ros::ok())
         {
             mpcc_ax = mpcc_cmd.acceleration.x;  mpcc_ay = mpcc_cmd.acceleration.y;  mpcc_az = mpcc_cmd.acceleration.z;  mpcc_yr = mpcc_cmd.yaw_dot;
@@ -285,9 +287,10 @@ int main(int argc, char **argv)
         }
     }
     else if (MODE == "attack") {
+        std::cout << "MODE: attack" << std::endl;
         while (ros::ok())
         {
-            att_ax = attack_cmd.acceleration.x;  att_ay = attack_cmd.acceleration.z;  att_az = attack_cmd.acceleration.z;  att_yr = attack_cmd.yaw_dot;
+            att_ax = attack_cmd.acceleration.x;  att_ay = attack_cmd.acceleration.y;  att_az = attack_cmd.acceleration.z;  att_yr = attack_cmd.yaw_dot;
             local_acc_target(att_ax, att_ay, att_az, att_yr);
 
             ros::spinOnce();

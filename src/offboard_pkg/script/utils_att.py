@@ -53,12 +53,9 @@ class Utils(object):
         #realsense: fx:632.9640658678117  fy:638.2668942402212
         self.f = params["FOC"] #150 #346.6  # 这个需要依据实际情况进行设定flength=(width/2)/tan(hfov/2),不同仿真环境以及真机实验中需要依据实际情况进行修改
         #camrea frame to mavros_body frame
-        self.R_cb = np.array([[1,0,0],\
-                             [0,0,1],\
+        self.R_cb = np.array([[0,0,1],\
+                             [-1,0,0],\
                              [0,-1,0]])
-        self.R_origin = np.array([[0,0,1],\
-                             [1,0,0],\
-                             [0,1,0]])
         self.n_cc = np.array([0,0,1])
 
         self.vd = np.array([0, 0, 0], dtype=np.float64)
@@ -233,7 +230,7 @@ class Utils(object):
 
         yaw_rate = 1.5*(self.u0 - pos_i[0])/self.u0
         
-        # print("n_co:{}, n_bo:{}, n_eo:{}, v_1:{}, v_2:{}, v_d:{}".format(n_co, n_bo, n_eo, v_1, v_2, v_d))
+        # print("n_co:{}, n_bo:{}, n_eo:{}, v_1:{}, v_2:{}, v_d:{}, a_d: {}".format(n_co, n_bo, n_eo, v_1, v_2, v_d, a_d))
         return [a_d[0], a_d[1], a_d[2], yaw_rate]
 
     def RotateAttackAccelerationController2VelCmd(self, pos_info, pos_i, controller_reset, yaw_d=np.pi/2):
