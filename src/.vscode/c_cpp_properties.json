@@ -17,7 +17,8 @@
                 "/usr/local/include/**",
                 "${workspaceFolder}/offboard_pkg/include",
                 "${workspaceFolder}/path/include",
-                "${workspaceFolder}/../matplotlib"
+                "${workspaceFolder}/../matplotlib",
+                "${workspaceFolder}/mcl/include"
             ],
             "name": "ROS",
             "intelliSenseMode": "gcc-x64",

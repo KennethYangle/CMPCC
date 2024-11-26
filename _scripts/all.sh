@@ -100,7 +100,7 @@ gnome-terminal --tab -t "Attack" -- bash -c "source ${WS_DIR}/devel/setup.bash;r
 sleep 1s
 
 # mavros控制汇总
-gnome-terminal --tab -t "Offboard Main Node" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun offboard_pkg main_node;exec bash"
+gnome-terminal --tab -t "Offboard Main Node" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun offboard_pkg main_node _ISFLIGHT:=${ISFLIGHT} _MODE:=all;exec bash"
 sleep 3s
 
 

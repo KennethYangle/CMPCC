@@ -237,6 +237,11 @@ int main(int argc, char **argv)
     if (!ros::param::get("~ISFLIGHT", ISFLIGHT)) {
         ISFLIGHT = 1;  // Default value if the parameter is not set
     }
+    std::string MODE;
+    if (!ros::param::get("~MODE", MODE)) {
+        MODE = "all";  // Default is “all”, optional “path”, “attack”, “all”.
+    }
+    std::cout << "ISFLIGHT: " << ISFLIGHT << ", MODE: " << MODE << std::endl;
     
     local_pos_sub = nh.subscribe<geometry_msgs::PoseStamped>("mavros/local_position/pose", 10, local_pos_cb);
     local_vel_sub = nh.subscribe<geometry_msgs::TwistStamped>("mavros/local_position/velocity_local", 10, local_vel_cb);
@@ -256,18 +261,43 @@ int main(int argc, char **argv)
     // std::cout << "move to init pose" << std::endl; 
     // move_to_init();
 
+    if (MODE == "all") {
+        while (ros::ok())
+        {
+            // local_pva_target(mpcc_cmd.position.x, mpcc_cmd.position.y, mpcc_cmd.position.z, mpcc_cmd.velocity.x, mpcc_cmd.velocity.y, mpcc_cmd.velocity.z, mpcc_cmd.acceleration.x, mpcc_cmd.acceleration.y, mpcc_cmd.acceleration.z, mpcc_cmd.yaw_dot);
+            w = attack_cmd.weight;
+            mpcc_ax = mpcc_cmd.acceleration.x;  mpcc_ay = mpcc_cmd.acceleration.y;  mpcc_az = mpcc_cmd.acceleration.z;  mpcc_yr = mpcc_cmd.yaw_dot;
+            att_ax = attack_cmd.acceleration.x;  att_ay = attack_cmd.acceleration.z;  att_az = attack_cmd.acceleration.z;  att_yr = attack_cmd.yaw_dot;
+            local_acc_target((1-w)*mpcc_ax + w*att_ax, (1-w)*mpcc_ay + w*att_ay, (1-w)*mpcc_az + w*att_az, (1-w)*mpcc_yr + w*att_yr);
 
-    while (ros::ok())
-    {
-        // local_pva_target(mpcc_cmd.position.x, mpcc_cmd.position.y, mpcc_cmd.position.z, mpcc_cmd.velocity.x, mpcc_cmd.velocity.y, mpcc_cmd.velocity.z, mpcc_cmd.acceleration.x, mpcc_cmd.acceleration.y, mpcc_cmd.acceleration.z, mpcc_cmd.yaw_dot);
-        w = attack_cmd.weight;
-        mpcc_ax = mpcc_cmd.acceleration.x;  mpcc_ay = mpcc_cmd.acceleration.y;  mpcc_az = mpcc_cmd.acceleration.z;  mpcc_yr = mpcc_cmd.yaw_dot;
-        att_ax = attack_cmd.acceleration.x;  att_ay = attack_cmd.acceleration.z;  att_az = attack_cmd.acceleration.z;  att_yr = attack_cmd.yaw_dot;
-        local_acc_target((1-w)*mpcc_ax + w*att_ax, (1-w)*mpcc_ay + w*att_ay, (1-w)*mpcc_az + w*att_az, (1-w)*mpcc_yr + w*att_yr);
-
-        ros::spinOnce();
-        rate.sleep();
+            ros::spinOnce();
+            rate.sleep();
+        }
     }
+    else if (MODE == "path") {
+        while (ros::ok())
+        {
+            mpcc_ax = mpcc_cmd.acceleration.x;  mpcc_ay = mpcc_cmd.acceleration.y;  mpcc_az = mpcc_cmd.acceleration.z;  mpcc_yr = mpcc_cmd.yaw_dot;
+            local_acc_target(mpcc_ax, mpcc_ay, mpcc_az, mpcc_yr);
+
+            ros::spinOnce();
+            rate.sleep();
+        }
+    }
+    else if (MODE == "attack") {
+        while (ros::ok())
+        {
+            att_ax = attack_cmd.acceleration.x;  att_ay = attack_cmd.acceleration.z;  att_az = attack_cmd.acceleration.z;  att_yr = attack_cmd.yaw_dot;
+            local_acc_target(att_ax, att_ay, att_az, att_yr);
+
+            ros::spinOnce();
+            rate.sleep();
+        }
+    }
+    else {
+        ROS_ERROR_STREAM("Unsupported MODE: " << MODE);
+    }
+    
     
     return 0;
 }
