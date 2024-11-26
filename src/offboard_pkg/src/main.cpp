@@ -117,12 +117,12 @@ void local_pva_target(const double px, const double py, const double pz,
     local_pva_pub.publish(pva_target);
 }
 
-void takeoff(ros::NodeHandle &nh)
+void takeoff(ros::NodeHandle &nh, int ISFLIGHT)
 {
     ros::Rate rate(20.0);
 
     int cnt = 0;
-    while(ros::ok() && !current_state.connected){
+    while(ros::ok() && !current_state.connected) {
         ros::spinOnce();
         rate.sleep();
         if(cnt % 100 == 0)
@@ -130,7 +130,7 @@ void takeoff(ros::NodeHandle &nh)
         cnt++;
     }
 
-    //send a few setpoints before starting
+    // Send a few setpoints before starting
     ref_pose.pose.position.z = 4;
     for(int i = 100; ros::ok() && i > 0; --i){
         local_pos_pub.publish(ref_pose);
@@ -146,27 +146,35 @@ void takeoff(ros::NodeHandle &nh)
 
     ros::Time last_request = ros::Time::now();
 
-    while((current_state.mode != "OFFBOARD") || (!arm_cmd.response.success)) {
-        if( current_state.mode != "OFFBOARD" &&(ros::Time::now() - last_request > ros::Duration(5.0))) {
-            if( set_mode_client.call(offb_set_mode) &&offb_set_mode.response.mode_sent) {
-                ROS_INFO("Offboard enabled");
-            }
-            last_request = ros::Time::now();
-        }
-        else {
-            if( !current_state.armed &&(ros::Time::now() - last_request > ros::Duration(5.0)))
-            {
-                if( arming_client.call(arm_cmd) &&arm_cmd.response.success)
-                {
-                    ROS_INFO("Vehicle armed");
+    if (ISFLIGHT == 0) {
+        // Simulation mode: Set OFFBOARD mode and arm the vehicle
+        while((current_state.mode != "OFFBOARD") || (!arm_cmd.response.success)) {
+            if (current_state.mode != "OFFBOARD" && (ros::Time::now() - last_request > ros::Duration(5.0))) {
+                if (set_mode_client.call(offb_set_mode) && offb_set_mode.response.mode_sent) {
+                    ROS_INFO("Offboard enabled");
                 }
                 last_request = ros::Time::now();
             }
+            else {
+                if (!current_state.armed && (ros::Time::now() - last_request > ros::Duration(5.0))) {
+                    if (arming_client.call(arm_cmd) && arm_cmd.response.success) {
+                        ROS_INFO("Vehicle armed");
+                    }
+                    last_request = ros::Time::now();
+                }
+            }
+            local_pos_pub.publish(ref_pose);
+            ros::spinOnce();
+            rate.sleep();
         }
-        local_pos_pub.publish(ref_pose);
-
-        ros::spinOnce();
-        rate.sleep();
+    } else {
+        // Flight mode: Wait for the user to unlock and enter offboard mode manually
+        std::cout << "Flight mode: Please unlock and enter OFFBOARD mode manually" << std::endl;
+        while (!(current_state.mode == "OFFBOARD" && current_state.armed)) {
+            local_pos_pub.publish(ref_pose);
+            ros::spinOnce();
+            rate.sleep();
+        }
     }
 
     double vx = - (local_pos.pose.position.x - ref_pose.pose.position.x);
@@ -176,8 +184,8 @@ void takeoff(ros::NodeHandle &nh)
     double dis = sqrt((local_pos.pose.position.x - ref_pose.pose.position.x)*(local_pos.pose.position.x - ref_pose.pose.position.x)
     + (local_pos.pose.position.y - ref_pose.pose.position.y)*(local_pos.pose.position.y - ref_pose.pose.position.y)
     + (local_pos.pose.position.z - ref_pose.pose.position.z)*(local_pos.pose.position.z - ref_pose.pose.position.z));
-    while(dis > 0.4)
-    {
+
+    while(dis > 0.4) {
         local_vel_target(vx, vy, vz);
         vx = - (local_pos.pose.position.x - ref_pose.pose.position.x);
         vy = - (local_pos.pose.position.y - ref_pose.pose.position.y);
@@ -223,8 +231,13 @@ int main(int argc, char **argv)
 {
     ros::init(argc, argv, "main_node");
     ros::NodeHandle nh;
-    ros::Rate rate(50);
+    ros::Rate rate(150);
 
+    int ISFLIGHT;
+    if (!ros::param::get("~ISFLIGHT", ISFLIGHT)) {
+        ISFLIGHT = 1;  // Default value if the parameter is not set
+    }
+    
     local_pos_sub = nh.subscribe<geometry_msgs::PoseStamped>("mavros/local_position/pose", 10, local_pos_cb);
     local_vel_sub = nh.subscribe<geometry_msgs::TwistStamped>("mavros/local_position/velocity_local", 10, local_vel_cb);
     mpcc_cmd_sub = nh.subscribe<quadrotor_msgs::PositionCommand>("/position_cmd",2, mpcc_cmd_cb);
@@ -237,7 +250,7 @@ int main(int argc, char **argv)
     arming_client = nh.serviceClient<mavros_msgs::CommandBool>("mavros/cmd/arming");
     set_mode_client = nh.serviceClient<mavros_msgs::SetMode>("mavros/set_mode");
     std::cout << "begin takeoff" << std::endl;
-    takeoff(nh);
+    takeoff(nh, ISFLIGHT);
     std::cout << "takeoff success" << std::endl; 
     
     // std::cout << "move to init pose" << std::endl; 
