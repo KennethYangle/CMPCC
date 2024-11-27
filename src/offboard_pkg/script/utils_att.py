@@ -45,7 +45,7 @@ class Utils(object):
         self.w = params["WIDTH"] #simulation 720  Real_flight:640
         self.h = params["HEIGHT"] #simulation 405  Real_flight:405
         self.u0 = self.w/2.
-        self.v0 = self.h*0.42 # self.h*0.43 # self.h/2
+        self.v0 = self.h*0.48 # self.h*0.43 # self.h/2
         self.cnt = 0
         self.cnt_WP = 1
         self.v_norm_d = 10
@@ -216,17 +216,17 @@ class Utils(object):
         # 两种用法：1）给定世界系下固定的n_td，限定打击方向；2）相对光轴一向量，随相机运动
         # n_td = np.array([np.cos(yaw_d), np.sin(yaw_d), 0], dtype=np.float64)
         n_td = np.array([np.cos(pos_info["mav_yaw"]), np.sin(pos_info["mav_yaw"]), 0.], dtype=np.float64)
-        v_1 = max(1.0 - pos_i[2]/200., 0.8) * (n_eo - n_td)   # n_t -> n_td
-        v_2 = 0.9 * n_td            # v   -> n_td
+        v_1 = max(1.5 - pos_i[2]/200., 0.7) * (n_eo - n_td)   # n_t -> n_td
+        v_2 = 1.0 * n_td            # v   -> n_td
 
         v_d = v_1 + v_2
         v_d /= np.linalg.norm(v_d)
         V = np.linalg.norm(pos_info["mav_vel"])
-        v_d *= V + 1.5
+        v_d *= V + 1.0
         # v_d *= V + 2.0
 
-        a_d = self.sat(1.0 * (v_d - pos_info["mav_vel"]), 6.)
-        a_d[2] = self.sat(a_d[2], 2.)
+        a_d = self.sat(1.5 * (v_d - pos_info["mav_vel"]), 10.)
+        # a_d[2] = self.sat(a_d[2], 2.)
 
         yaw_rate = 1.5*(self.u0 - pos_i[0])/self.u0
         
