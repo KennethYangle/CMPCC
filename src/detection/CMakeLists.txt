@@ -150,7 +150,8 @@ include_directories(
 ## The recommended prefix ensures that target names across packages don't collide
 # add_executable(${PROJECT_NAME}_node src/detection_node.cpp)
 add_executable(color_det src/color_det.cpp)
-
+add_executable(undistortion_node src/undistortion_for_video.cpp)
+# add_executable(undistortion_test src/undistortion.cpp)
 ## Rename C++ executable without prefix
 ## The above recommended prefix causes long target names, the following renames the
 ## target back to the shorter version for ease of user use
@@ -166,7 +167,8 @@ add_executable(color_det src/color_det.cpp)
 #   ${catkin_LIBRARIES}
 # )
 target_link_libraries(color_det ${catkin_LIBRARIES} ${OpenCV_LIBS})
-
+target_link_libraries(undistortion_node ${catkin_LIBRARIES} ${OpenCV_LIBS})
+# target_link_libraries(undistortion_test ${catkin_LIBRARIES} ${OpenCV_LIBS})
 #############
 ## Install ##
 #############
