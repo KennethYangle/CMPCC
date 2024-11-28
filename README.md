@@ -22,14 +22,14 @@ Corridor-based Model Predictive Contouring Control for Aggressive Drone Flight
 - **src/simualtion**: a lightweight simulator for quadrotors 
 - **src/utils**: some functional codes and plugins
 - **osqp**: a copy of [OSQP](https://osqp.org/) source code for solving qp problem.
-- **key2joy.py**: a user-interface tool based on pygame for setting disturbance
+
 
 ## 1. Prerequisites
 Our software is developed and tested in Ubuntu 18.04, ROS Melodic. Other version may require minor modification. 
 
 You can clone this repository: 
 ```
-git clone https://github.com/ZJU-FAST-Lab/CMPCC.git
+git clone https://github.com/KennethYangle/CMPCC.git
 cd CMPCC
 ```
 To install the following dependencies, you can run the auto-install script by
@@ -37,19 +37,15 @@ To install the following dependencies, you can run the auto-install script by
 chmod +x install_tools.sh
 ./install_tools.sh
 ```
+
 If failed, you can manually install them one by one:
 - install dependencies
 ```
 sudo apt-get install libyaml-cpp-dev
 sudo apt-get install libarmadillo-dev
 ```
-- install pygame for key2joy.py
-```
-sudo apt-get install python-pip
-pip install pygame
-```
-- install osqp
 
+- install osqp
 ```
 cd osqp
 mkdir build
@@ -59,13 +55,27 @@ cmake --build .
 sudo cmake --build . --target install
 ```
 
+- install Eigen
+```
+  cd Eigen
+  mkdir build
+  cd build
+  cmake ..
+  make
+  sudo make install
+```
+
 ## 2. Build on ROS
 After the prerequisites are satisfied, you can catkin_make in this repository directory, which is already a ros-workspace:
 ```
+catkin_make --pkg swarm_msgs
 catkin_make
 ``` 
 
 ## 3. Run the Simulation
+Copy the `_ShootBall` folder to Windows and change the IP correspondingly. Double click `client_ue4_SITL.bat` to run it.
+
+On Linux,
 ```
 source devel/setup.bash
 ./_scripts/all.sh -s
