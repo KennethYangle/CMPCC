@@ -6,7 +6,7 @@
    <arg name="port2" default="20100" />
 
    <group if="$(arg use_pix)">
-      <arg name="fcu_url" default="/dev/ttyUSB0:115200"/>
+      <arg name="fcu_url" default="/dev/ttyUSB0:57600"/>
       <include file="$(find mavros)/launch/px4.launch">
          <arg name="fcu_url" value="$(arg fcu_url)"/>
          <arg name="gcs_url" value=""/>
