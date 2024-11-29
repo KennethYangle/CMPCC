@@ -1,6 +1,7 @@
 SH_DIR=$(realpath .)
 
 # install dependencies
+sudo apt-get install ros-${ROS_DISTRO}-video-stream-opencv
 sudo apt-get install libyaml-cpp-dev
 sudo apt-get install libarmadillo-dev
 

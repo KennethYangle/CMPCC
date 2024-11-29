@@ -41,6 +41,7 @@ chmod +x install_tools.sh
 If failed, you can manually install them one by one:
 - install dependencies
 ```
+sudo apt-get install ros-${ROS_DISTRO}-video-stream-opencv
 sudo apt-get install libyaml-cpp-dev
 sudo apt-get install libarmadillo-dev
 ```

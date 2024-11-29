@@ -1,0 +1,5 @@
+<launch>
+  <node name="det" pkg="yolo" type="det" output="screen" >
+  </node>
+
+</launch>

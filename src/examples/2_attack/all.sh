@@ -72,9 +72,9 @@ else
     sleep 2s
 
     # 目标检测
-    gnome-terminal -x bash -c "source ${WS_DIR}/devel/setup.bash; roslaunch csi_cam main.launch; exec bash"
+    gnome-terminal -x bash -c "source ${WS_DIR}/devel/setup.bash; roslaunch yolo action4.launch; exec bash"
     sleep 10s
-    gnome-terminal -x bash -c "source ${WS_DIR}/devel/setup.bash; roslaunch det det.launch; exec bash"
+    gnome-terminal -x bash -c "source ${WS_DIR}/devel/setup.bash; roslaunch yolo det_yolo.launch; exec bash"
     sleep 10s
 fi
 
