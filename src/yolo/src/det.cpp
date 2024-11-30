@@ -26,6 +26,8 @@
 #include <swarm_msgs/BoundingBox.h>
 
 using namespace nvinfer1;
+// 是否显示检测图像
+bool is_show_bbx = false;
 
 static Logger gLogger;
 const static int kOutputSize = kMaxNumOutputBbox * sizeof(Detection) / sizeof(float) + 1;
@@ -112,11 +114,11 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
  if (num%1==0){
  try
   { // Get image
-auto start = std::chrono::system_clock::now();
+    auto start = std::chrono::system_clock::now();
     auto cv_ptr = cv_bridge::toCvShare(msg, "bgr8");
     std::vector<cv::Mat> img_batch;
     cv::Mat img = cv_ptr->image;
-    img = rotateImage(img , 180);
+    // img = rotateImage(img , 180);
     img_batch.push_back(img);
     
     //Preprocess
@@ -150,8 +152,10 @@ auto start = std::chrono::system_clock::now();
       switch((int)res[j].class_id)
       {
         case 0: 
-          cv::rectangle(img, r, cv::Scalar(0x27, 0xC1, 0x36), 2);
-          cv::putText(img, "ballon"+std::to_string(res[j].conf), cv::Point(r.x, r.y - 1), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+          if (is_show_bbx) {
+            cv::rectangle(img, r, cv::Scalar(0x27, 0xC1, 0x36), 2);
+            cv::putText(img, "ballon"+std::to_string(res[j].conf), cv::Point(r.x, r.y - 1), cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
+          }
           if(res[j].conf>.40){
             circle_boxes.bounding_boxes.push_back(msg_BoundingBox);
           } 
@@ -160,9 +164,14 @@ auto start = std::chrono::system_clock::now();
       }
     }
 
+    if (is_show_bbx) {
+      cv::imshow("yolo", img);
+      cv::waitKey(1);
+    }
+
     pub_circle.publish(circle_boxes);
-auto end = std::chrono::system_clock::now();
-// std::cout << "run time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
+    // auto end = std::chrono::system_clock::now();
+    // std::cout << "run time: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "ms" << std::endl;
 
   }
   catch (cv_bridge::Exception& e)
@@ -185,6 +194,9 @@ int main(int argc, char **argv)
 
   ros::init(argc, argv, "image_listener");
   ros::NodeHandle nh;
+
+  nh.param("/Debug/is_show_bbx", is_show_bbx, false);
+  ROS_INFO("is_show_bbx: %d", is_show_bbx);
 
   image_transport::ImageTransport it(nh);
   pub_circle = nh.advertise<swarm_msgs::BoundingBoxes>("/tracker/pos_image", 1);
