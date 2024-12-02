@@ -93,9 +93,11 @@ if __name__=="__main__":
     img_width = rospy.get_param("/camera/img_width")
     img_height = rospy.get_param("/camera/img_height")
     img_f = rospy.get_param("/camera/img_f")
+    distortion_coeffs = np.array(rospy.get_param('camera/distortion_coeffs'))
+    R_cb = np.array(rospy.get_param('camera/R_cam_body')).reshape(3, 3)
     image_center = [img_width / 2.0, img_height / 2.0]
 
-    params = {"WIDTH": img_width, "HEIGHT": img_height, "FOC": img_f}
+    params = {"WIDTH": img_width, "HEIGHT": img_height, "FOC": img_f, "DISTORTION": distortion_coeffs, "R_cb": R_cb}
     print(params)
     u = Utils(params)
 

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 #coding=utf-8
 
+import cv2
 import numpy as np
 import math
 import tf
@@ -52,42 +53,11 @@ class Utils(object):
         self.last_mav_vel = np.array([[0], [0], [0]], dtype=np.float64)
         #realsense: fx:632.9640658678117  fy:638.2668942402212
         self.f = params["FOC"] #150 #346.6  # 这个需要依据实际情况进行设定flength=(width/2)/tan(hfov/2),不同仿真环境以及真机实验中需要依据实际情况进行修改
-        #camrea frame to mavros_body frame
-        self.R_cb = np.array([[0,0,1],\
-                             [-1,0,0],\
-                             [0,-1,0]])
-        self.n_cc = np.array([0,0,1])
+        self.distortion_coeffs = params["DISTORTION"]
+        self.R_cb = params["R_cb"]  # camrea frame to mavros_body frame
+        self.n_cc = np.array([0.,0.,1.])
+        self.K = np.array([[self.f, 0, self.u0], [0, self.f, self.v0], [0, 0, 1]])
 
-        self.vd = np.array([0, 0, 0], dtype=np.float64)
-        self.ko = 2.5 #the angular rate to avoid obstacle
-
-        self.kp_vd = 2.0 #the p_control about desire velicoty
-
-        self.kvod = 2.5 #the p_control about desire velicoty by matrix initial value:1   2.5
-
-
-    def distance(self, circle):
-        p1 = Point(circle[0], circle[1])
-        p2 = Point(self.w / 2, self.h / 2)
-        l = Getlen(p1, p2)
-        # # print(self.circley)
-        return l.getlen()
-
-    def distance_y(self, circle):
-        len_y = circle[1] - self.h / 2
-        return len_y
-
-    def par(self, d, d1, d2):
-        if d < d1 or d == d1:
-            return 1.0
-        elif (d1 < d and d < d2) or d == d2:
-            A = -2 / math.pow((d1 - d2), 3)
-            B = 3 * (d1 + d2) / math.pow((d1 - d2), 3)
-            C = -6 * d1 * d2 / math.pow((d1 - d2), 3)
-            D = (math.pow(d2, 2) * (3 * d1 - d2)) / math.pow((d1 - d2), 3)
-            return A * math.pow(d, 3) + B * math.pow(d, 2) + C * math.pow(d, 1) + D
-        else:
-            return 0.0
 
     def sat(self, a, maxv):
         n = np.linalg.norm(a)
@@ -95,41 +65,6 @@ class Utils(object):
             return a / n * maxv
         else:
             return a
-
-    def DockingControllerFusion(self, pos_info, pos_i):
-        #calacute nc,the first idex(c:camera,b:body,e:earth) represent the frmae, the second idex(c,o) represent the camera or obstacle
-        n_bc = self.R_cb.dot(self.n_cc)
-        n_ec = pos_info["mav_R"].dot(n_bc)
-        
-        #calacute the no
-        n_co = np.array([pos_i[0] - self.u0, pos_i[1] - self.v0, self.f], dtype=np.float64)
-        n_co /= np.linalg.norm(n_co)
-        n_bo = self.R_cb.dot(n_co)
-        n_eo = pos_info["mav_R"].dot(n_bo)
-
-        self.change = self.par(n_eo.dot(n_ec), 0.867, 0.966)  #0.707, 0.867 the parameter about smooth
-        if pos_i[1] == 0:
-            self.change = 1
-        
-        #calculate vod
-        vd1 = matrix(n_eo, n_eo)
-        matrix_I = np.array([[1, 0, 0], [0, 1, 0], [0, 0, 1]])
-        vI = matrix_I - vd1
-        vod = (1./(1.001 - n_eo.dot(n_ec)))*(1 - self.change) * self.kvod * vI.T.dot(n_ec)
-        
-        v_rd_b = np.array([0, 0, 0])#np.array([1, 0, 0])
-        v_rd_e = pos_info["mav_R"].dot(v_rd_b)
-        # print("vr:{}".format(v_rd_e))
-        
-        v = vod + self.change * v_rd_e
-        
-        v[0] = v[0]
-        v[1] = v[1]
-        v[2] = v[2]
-        v = self.sat(v,1.0)
-        
-        # print("v:{}".format(v))
-        return [v[0], v[1], v[2], 0]
 
     def BasicAttackController(self, pos_info, pos_i, image_center):
         yaw = pos_info["mav_original_angle"][0]
@@ -207,8 +142,13 @@ class Utils(object):
         n_bc = self.R_cb.dot(self.n_cc)
         n_ec = pos_info["mav_R"].dot(n_bc)
         
-        #calacute the no
-        n_co = np.array([pos_i[0] - self.u0, pos_i[1] - self.v0, self.f], dtype=np.float64)
+        # calacute the no
+        points = np.array([pos_i[0], pos_i[1]], dtype=np.float64).reshape(-1, 1, 2)     # 输入像素坐标
+        undistorted_points = cv2.fisheye.undistortPoints(points, self.K, self.distortion_coeffs)    # 去畸变
+        x_norm, y_norm = undistorted_points[0][0]   # 提取去畸变后的标准化坐标
+        # print(pos_i[0], pos_i[1], x_norm, y_norm)
+        # n_co = np.array([pos_i[0] - self.u0, pos_i[1] - self.v0, self.f], dtype=np.float64)
+        n_co = np.array([x_norm, y_norm, 1], dtype=np.float64)
         n_co /= np.linalg.norm(n_co)
         n_bo = self.R_cb.dot(n_co)
         n_eo = pos_info["mav_R"].dot(n_bo)
