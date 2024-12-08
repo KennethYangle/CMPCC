@@ -11,5 +11,5 @@ Debug:
   is_show_image: false  # main.cpp
   is_show_rgb: false    # img_pub.py
   is_show_hsv: false
-  is_show_bbx: true     # det.cpp
+  is_show_bbx: false     # det.cpp
   is_show_3D_estimation: true

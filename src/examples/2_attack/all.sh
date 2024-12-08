@@ -78,9 +78,9 @@ else
     sleep 10s
 fi
 
-# Rviz可视化，可选
-gnome-terminal --tab -t "Rviz" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch cmpcc rviz_view.launch;exec bash"
-sleep 2s
+# # Rviz可视化，可选
+# gnome-terminal --tab -t "Rviz" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch cmpcc rviz_view.launch;exec bash"
+# sleep 2s
 
 # 拦截控制
 gnome-terminal --tab -t "Attack" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun offboard_pkg attack.py;exec bash"
@@ -91,6 +91,6 @@ gnome-terminal --tab -t "Offboard Main Node" -- bash -c "source ${WS_DIR}/devel/
 sleep 3s
 
 
-
-# gnome-terminal --window -- bash -c "rosbag record /d400/imu /d400/color/camera_info /d400/aligned_depth_to_color/image_raw /d400/aligned_depth_to_color/camera_info /d400/color/image_raw /camera/odom/sample /mavros/odometry/out /mavros/local_position/odom /MSF/odom/local /MSF/odom/global /mavros/setpoint_velocity/cmd_vel /mapLoc/pose -o /home/nvidia/record;exec bash"
-# sleep 5s
+# 录制bag，保存到/home/nvidia/record/
+gnome-terminal --tab -t "ROSbag Record" -- bash -c "rosbag record --split --size=512 /attack_cmd /camera/image_raw/compressed /mavros/state /mavros/global_position/global /mavros/imu/data /mavros/local_position/pose /mavros/local_position/velocity_local /mavros/rc/in /mavros/setpoint_raw/local /mavros/setpoint_position/local /mavros/setpoint_velocity/cmd_vel /tracker/pos_image  -o /home/nvidia/record/;exec bash"
+sleep 5s

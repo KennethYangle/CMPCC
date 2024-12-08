@@ -186,7 +186,7 @@ void takeoff(ros::NodeHandle &nh, int ISFLIGHT)
     + (local_pos.pose.position.y - ref_pose.pose.position.y)*(local_pos.pose.position.y - ref_pose.pose.position.y)
     + (local_pos.pose.position.z - ref_pose.pose.position.z)*(local_pos.pose.position.z - ref_pose.pose.position.z));
 
-    while(local_pos.pose.position.z > ref_pose.pose.position.z - 0.4) {
+    while(local_pos.pose.position.z < ref_pose.pose.position.z - 0.2) {
         local_vel_target(0, 0, 1);
         std::cout << "Up, 1 m/s" << std::endl;
         // local_vel_target(vx, vy, vz);
