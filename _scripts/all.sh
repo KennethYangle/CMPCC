@@ -68,7 +68,7 @@ else
     gnome-terminal --tab -t "Load Camera & Filter Param" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch params load_param_real.launch;exec bash"
 
     # mavros
-    gnome-terminal --tab -t "Mavros" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch mavros px4.launch fcu_url:="/dev/ttyACM0:115200";exec bash"
+    gnome-terminal --tab -t "Mavros" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch mavros px4.launch fcu_url:="/dev/ttyACM0:57600";exec bash"
     sleep 2s
 
     # 目标检测

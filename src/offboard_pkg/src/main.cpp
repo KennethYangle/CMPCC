@@ -131,7 +131,7 @@ void takeoff(ros::NodeHandle &nh, int ISFLIGHT)
     }
 
     // Send a few setpoints before starting
-    ref_pose.pose.position.z = 4;
+    ref_pose.pose.position.z = 1.5;
     for(int i = 100; ros::ok() && i > 0; --i){
         local_pos_pub.publish(ref_pose);
         ros::spinOnce();
@@ -170,13 +170,14 @@ void takeoff(ros::NodeHandle &nh, int ISFLIGHT)
     } else {
         // Flight mode: Wait for the user to unlock and enter offboard mode manually
         std::cout << "Flight mode: Please unlock and enter OFFBOARD mode manually" << std::endl;
-        while (!(current_state.mode == "OFFBOARD" && current_state.armed)) {
+        while (!(current_state.mode == "OFFBOARD")) {
             local_pos_pub.publish(ref_pose);
             ros::spinOnce();
             rate.sleep();
         }
     }
 
+    std::cout << "Move to ref_pos." << std::endl;
     double vx = - (local_pos.pose.position.x - ref_pose.pose.position.x);
     double vy = - (local_pos.pose.position.y - ref_pose.pose.position.y);
     double vz = - (local_pos.pose.position.z - ref_pose.pose.position.z);
@@ -185,8 +186,10 @@ void takeoff(ros::NodeHandle &nh, int ISFLIGHT)
     + (local_pos.pose.position.y - ref_pose.pose.position.y)*(local_pos.pose.position.y - ref_pose.pose.position.y)
     + (local_pos.pose.position.z - ref_pose.pose.position.z)*(local_pos.pose.position.z - ref_pose.pose.position.z));
 
-    while(dis > 0.4) {
-        local_vel_target(vx, vy, vz);
+    while(local_pos.pose.position.z > ref_pose.pose.position.z - 0.4) {
+        local_vel_target(0, 0, 1);
+        std::cout << "Up, 1 m/s" << std::endl;
+        // local_vel_target(vx, vy, vz);
         vx = - (local_pos.pose.position.x - ref_pose.pose.position.x);
         vy = - (local_pos.pose.position.y - ref_pose.pose.position.y);
         vz = - (local_pos.pose.position.z - ref_pose.pose.position.z);

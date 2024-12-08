@@ -66,6 +66,10 @@ else
     # mavros
     gnome-terminal --tab -t "Mavros" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch mavros px4.launch fcu_url:="/dev/ttyACM0:57600";exec bash"
     sleep 2s
+
+    # 仿真气球运动
+    gnome-terminal --tab -t "Sim Balloon Motion" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun path sim_balloon_node _balloon_motion_file:=${WS_DIR}/src/examples/1_circular/balloon_motion.yaml;exec bash"
+    sleep 0.5s
 fi
 
 
