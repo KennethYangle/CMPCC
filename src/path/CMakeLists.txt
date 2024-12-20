@@ -36,6 +36,13 @@ target_link_libraries(sim_balloon_node
   yaml-cpp
 )
 
+add_executable(receive_balloon_node
+  src/receive_balloon_motion_from_lidar.cpp)
+target_link_libraries(receive_balloon_node
+  ${catkin_LIBRARIES}
+  yaml-cpp
+)
+
 add_executable(path_finding_node
   src/path_finding.cpp)
 target_link_libraries(path_finding_node

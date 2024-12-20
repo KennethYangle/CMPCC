@@ -73,8 +73,8 @@ else
     gnome-terminal -x bash -c "source ${HOME}/Avia_ws/devel/setup.bash; roslaunch bs_assis bs_dds.launch  mav_id:=${mav_id} mav_num:=${mav_num}; exec bash"
     sleep 2s
 
-    # 仿真气球运动
-    gnome-terminal --tab -t "Sim Balloon Motion" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun path sim_balloon_node _balloon_motion_file:=${WS_DIR}/src/examples/1_circular/balloon_motion.yaml;exec bash"
+    # 接收激光雷达检测
+    gnome-terminal --tab -t "Receive Balloon From Lidar" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun path receive_balloon_node;exec bash"
     sleep 0.5s
 fi
 
