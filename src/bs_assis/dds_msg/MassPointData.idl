@@ -1,0 +1,14 @@
+struct MassPointData
+{
+    // geometry_msgs/Vector3 position
+    float pos_x;
+    float pos_y;
+    float pos_z;
+
+    // geometry_msgs/Vector3 velocity
+    float vel_x;
+    float vel_y;
+    float vel_z;
+
+    int64 volume;
+};

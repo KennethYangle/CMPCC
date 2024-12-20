@@ -1,0 +1,15 @@
+<launch>
+   <!-- MAVROS -->
+   <arg name="mav_id" default="1" />
+   <arg name="fcu_url" default="/dev/ttyUSB0:115200"/>
+   <include file="$(find mavros)/launch/px4.launch">
+      <arg name="fcu_url" value="$(arg fcu_url)"/>
+      <arg name="gcs_url" value=""/>
+      <arg name="tgt_system" value="$(arg mav_id)"/>
+      <arg name="tgt_component" value="1"/>
+   </include>
+
+   <node pkg="mavros" type="mavcmd" name="cmdlong" output="screen" 
+      args="long 511 32 25000 0 0 0 0 0" 
+   />
+</launch>

@@ -1,0 +1,18 @@
+struct BBoxData
+{
+    short id;
+
+    string obj_class;
+    int64 xmin;
+    int64 ymin;
+    int64 xmax;
+    int64 ymax;
+
+    float probability;
+
+    // geometry_msgs/Point
+    float pose_x;
+    float pose_y;
+    float pose_z;
+
+};

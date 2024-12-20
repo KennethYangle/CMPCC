@@ -1,0 +1,7 @@
+#include "MassPointData.idl"
+
+struct MassPointsData
+{
+    short system_ID;
+	sequence<MassPointData> points;
+};

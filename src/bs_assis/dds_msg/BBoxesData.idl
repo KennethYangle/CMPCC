@@ -1,0 +1,7 @@
+#include "BBoxData.idl"
+
+struct BBoxesData
+{
+    short system_ID;
+	sequence<BBoxData> bounding_boxes;
+};

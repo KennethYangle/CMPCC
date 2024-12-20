@@ -1,0 +1,32 @@
+struct MavData
+{
+    short system_ID;
+
+    // /mavros/local_position/pose
+    // geometry_msgs/PoseStamped
+    float pose_x;
+    float pose_y;
+    float pose_z;
+
+    float quat_w;
+    float quat_x;
+    float quat_y;
+    float quat_z;
+
+    // /mavros/global_position/global
+    // sensor_msgs/NavSatFix
+    float latitude;
+    float longitude;
+    float altitude;
+
+    // /mavros/local_position/velocity_local
+    // geometry_msgs/TwistStamped
+    float vel_x;
+    float vel_y;
+    float vel_z;
+
+    float ang_x;
+    float ang_y;
+    float ang_z;
+	
+};

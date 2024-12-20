@@ -24,6 +24,9 @@ else
    echo "Real Flight Mode !!!"
 fi
 
+mav_id=1
+mav_num=2
+
 
 
 
@@ -69,6 +72,10 @@ else
 
     # mavros
     gnome-terminal --tab -t "Mavros" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch mavros px4.launch fcu_url:="/dev/ttyACM0:57600";exec bash"
+    sleep 2s
+
+    ## DDS
+    gnome-terminal -x bash -c "source ${HOME}/Avia_ws/devel/setup.bash; roslaunch bs_assis bs_dds.launch  mav_id:=${mav_id} mav_num:=${mav_num}; exec bash"
     sleep 2s
 
     # 目标检测

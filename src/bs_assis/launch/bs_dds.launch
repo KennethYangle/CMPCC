@@ -1,0 +1,9 @@
+<launch>
+   <arg name="mav_id" default="1" />
+   <arg name="mav_num" default="12" />
+   <!-- <node pkg="bs_assis" type="dds_node" name="dds_node_$(arg mav_id)" output="screen" required="true"> -->
+   <node pkg="bs_assis" type="dds_node" name="dds_node_$(arg mav_id)" required="true">
+        <param name="mav_id" value="$(arg mav_id)"/>
+        <param name="mav_num" value="$(arg mav_num)"/>
+   </node>
+</launch>
