@@ -21,6 +21,22 @@ public:
         
         // RViz marker 发布器
         marker_pub = nh.advertise<visualization_msgs::Marker>("/rviz/obj", 10);
+        is_receive_lidar_pose_ = false;
+
+        marker.type = visualization_msgs::Marker::SPHERE;
+        marker.pose.orientation.x = 0.0;
+        marker.pose.orientation.y = 0.0;
+        marker.pose.orientation.z = 0.0;
+        marker.pose.orientation.w = 1.0;
+        // 设置标记的颜色为红色
+        marker.color.r = 1.0;
+        marker.color.g = 0.0;
+        marker.color.b = 0.0;
+        marker.color.a = 1.0;
+        marker.scale.x = 1;
+        marker.scale.y = 1;
+        marker.scale.z = 1;
+        marker.header.frame_id = "world";
     }
 
 private:
@@ -30,6 +46,7 @@ private:
     ros::Publisher marker_pub;       // 发布Marker以在RViz中可视化气球
 
     geometry_msgs::PoseStamped trans_lidar_mav_;  // 激光雷达相对于无人机的位置
+    bool is_receive_lidar_pose_;
 
     // RViz接口函数：将气球数据发布为Marker显示
     void rviz_interface(int id, swarm_msgs::MassPoint point) {
@@ -46,11 +63,12 @@ private:
     // 接收无人机姿态并保存
     void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
         trans_lidar_mav_ = *msg;
+        is_receive_lidar_pose_ = true;
     }
 
     // 接收激光雷达检测的目标并进行坐标系转换
     void masspointCallback(const swarm_msgs::MassPoints::ConstPtr& msg) {
-        if (trans_lidar_mav_.header.stamp == ros::Time(0)) {
+        if (!is_receive_lidar_pose_) {
             ROS_WARN("No pose data received yet.");
             return;
         }
