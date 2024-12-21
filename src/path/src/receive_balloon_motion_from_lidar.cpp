@@ -5,6 +5,7 @@
 #include <swarm_msgs/MassPoint.h>
 #include <swarm_msgs/MassPoints.h>
 #include <tf/transform_datatypes.h>
+#include <mavros_msgs/State.h>  // Include the State message
 
 class BalloonMotionReceiver {
 public:
@@ -15,10 +16,11 @@ public:
         // 订阅话题
         pose_sub_ = nh.subscribe("/drone_2/mavros/local_position/pose", 10, &BalloonMotionReceiver::poseCallback, this);
         masspoint_sub_ = nh.subscribe("/drone_2/balloons/masspoint", 10, &BalloonMotionReceiver::masspointCallback, this);
+        state_sub_ = nh.subscribe("/mavros/state", 10, &BalloonMotionReceiver::stateCallback, this);
 
         // 发布话题
         masspoint_pub_ = nh.advertise<swarm_msgs::MassPoints>("/balloons/masspoint", 10);
-        
+
         // RViz marker 发布器
         marker_pub = nh.advertise<visualization_msgs::Marker>("/rviz/obj", 10);
         is_receive_lidar_pose_ = false;
@@ -40,13 +42,15 @@ public:
     }
 
 private:
-    ros::Subscriber pose_sub_;       // 订阅激光雷达相对于无人机的姿态
-    ros::Subscriber masspoint_sub_;  // 订阅激光雷达检测的目标数据
-    ros::Publisher masspoint_pub_;   // 发布转换后的目标数据
-    ros::Publisher marker_pub;       // 发布Marker以在RViz中可视化气球
+    ros::Subscriber pose_sub_;
+    ros::Subscriber masspoint_sub_;
+    ros::Subscriber state_sub_;
+    ros::Publisher masspoint_pub_;
+    ros::Publisher marker_pub;
 
     geometry_msgs::PoseStamped trans_lidar_mav_;  // 激光雷达相对于无人机的位置
     bool is_receive_lidar_pose_;
+    double initial_z_offset_;  // Store the initial Z offset
 
     // RViz接口函数：将气球数据发布为Marker显示
     void rviz_interface(int id, swarm_msgs::MassPoint point) {
@@ -58,6 +62,14 @@ private:
 
         // 发布Marker
         marker_pub.publish(marker);
+    }
+
+    // Callback to receive UAV state
+    void stateCallback(const mavros_msgs::State::ConstPtr& msg) {
+        // Check if the drone is unlocked
+        if (!msg->armed && msg->connected) {
+            initial_z_offset_ = trans_lidar_mav_.pose.position.z;
+        }
     }
 
     // 接收无人机姿态并保存
@@ -81,11 +93,14 @@ private:
             const auto& point = msg->points[i];
             swarm_msgs::MassPoint transformed_point;
 
-            // 将目标位置转换到无人机坐标系
+            // Apply z-offset correction if the UAV is unlocked
+            double corrected_z = trans_lidar_mav_.pose.position.z - initial_z_offset_;
+
+            // Transform the target position to the UAV coordinate system
             tf::Vector3 point_pos(point.position.x, point.position.y, point.position.z);
             tf::Vector3 trans_pos(trans_lidar_mav_.pose.position.x,
                                   trans_lidar_mav_.pose.position.y,
-                                  trans_lidar_mav_.pose.position.z);
+                                  corrected_z);  // Use corrected z value
 
             // 目标位置加上激光雷达相对于无人机的位置
             tf::Vector3 transformed_position = point_pos + trans_pos;
@@ -97,7 +112,7 @@ private:
 
             // 保持目标的速度不变
             transformed_point.velocity = point.velocity;
-
+            
             // 保持目标的体积不变
             transformed_point.volume = point.volume;
 

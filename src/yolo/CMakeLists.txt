@@ -37,11 +37,17 @@ add_library(myplugins SHARED ${PLUGIN_SRCS} ${SRCS})
 target_link_libraries(myplugins nvinfer cudart)
 
 add_executable(det src/det.cpp)
+add_executable(det_org2 src/det_org2.cpp)
 
 target_link_libraries(det ${catkin_LIBRARIES} ${OpenCV_LIBS})
 target_link_libraries(det nvinfer)
 target_link_libraries(det cudart)
 target_link_libraries(det myplugins)
+
+target_link_libraries(det_org2 ${catkin_LIBRARIES} ${OpenCV_LIBS})
+target_link_libraries(det_org2 nvinfer)
+target_link_libraries(det_org2 cudart)
+target_link_libraries(det_org2 myplugins)
 
 
 message(STATUS "library status:")
@@ -52,48 +58,3 @@ message(STATUS "OpenCV_DIR: ${OpenCV_DIR}")
 message(STATUS "catkin libraries: ${catkin_LIBRARIES}")
 message(STATUS "cv_bridge_DIR: ${cv_bridge_DIR}")
 message(STATUS "OpenCV_LIBRARIES: ${OpenCV_LIBRARIES}")
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

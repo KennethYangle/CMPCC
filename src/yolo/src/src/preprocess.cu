@@ -108,12 +108,14 @@ void cuda_preprocess(
   int img_size = src_width * src_height * 3;
   // copy data to pinned memory
   memcpy(img_buffer_host, src, img_size);
+  // img_buffer_host = src;
   // copy data to device memory
+  
   CUDA_CHECK(cudaMemcpyAsync(img_buffer_device, img_buffer_host, img_size, cudaMemcpyHostToDevice, stream));
 
   AffineMatrix s2d, d2s;
   float scale = std::min(dst_height / (float)src_height, dst_width / (float)src_width);
-
+  // float scale = 1.0;
   s2d.value[0] = scale;
   s2d.value[1] = 0;
   s2d.value[2] = -scale * src_width  * 0.5  + dst_width * 0.5;
@@ -123,6 +125,13 @@ void cuda_preprocess(
 
   cv::Mat m2x3_s2d(2, 3, CV_32F, s2d.value);
   cv::Mat m2x3_d2s(2, 3, CV_32F, d2s.value);
+
+  cv::imshow("m2x3_s2d", m2x3_s2d);
+  cv::imshow("m2x3_d2s", m2x3_d2s);
+
+
+  // cv::Mat m2x3_s2d(2, 3, CV_8UC3, s2d.value);
+  // cv::Mat m2x3_d2s(2, 3, CV_8UC3, d2s.value);
   cv::invertAffineTransform(m2x3_s2d, m2x3_d2s);
 
   memcpy(d2s.value, m2x3_d2s.ptr<float>(0), sizeof(d2s.value));
