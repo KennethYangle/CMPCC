@@ -70,7 +70,7 @@ else
     sleep 2s
 
     ## DDS
-    gnome-terminal -x bash -c "source ${HOME}/Avia_ws/devel/setup.bash; roslaunch bs_assis bs_dds.launch  mav_id:=${mav_id} mav_num:=${mav_num}; exec bash"
+    gnome-terminal -x bash -c "source ${HOME}/CMPCC/devel/setup.bash; roslaunch bs_assis bs_dds.launch  mav_id:=${mav_id} mav_num:=${mav_num}; exec bash"
     sleep 2s
 fi
 
@@ -92,7 +92,7 @@ gnome-terminal --tab -t "Offboard Main Node" -- bash -c "source ${WS_DIR}/devel/
 sleep 3s
 
 # 接收激光雷达检测
-gnome-terminal --tab -t "Receive Balloon From Lidar" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun path receive_balloon_node;exec bash"
+gnome-terminal --tab -t "Receive Balloon From Lidar" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch path receive_balloon.launch;exec bash"
 sleep 0.5s
 
 

@@ -1,0 +1,13 @@
+<launch>
+    <arg name="matching_horizontal_th" default="0.5" />
+    <arg name="matching_vertical_th" default="2.0" />
+    <arg name="matching_variation_th" default="2.5" />
+    <arg name="is_matching" default="false" />
+
+    <node name="receive_balloon_node" pkg="path" type="receive_balloon_node" output="screen">
+        <param name="matching_horizontal_th" value="$(arg matching_horizontal_th)"/>
+        <param name="matching_vertical_th" value="$(arg matching_vertical_th)"/>
+        <param name="matching_variation_th" value="$(arg matching_variation_th)"/>
+        <param name="is_matching" value="$(arg is_matching)"/>
+    </node>
+</launch>

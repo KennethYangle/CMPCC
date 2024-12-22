@@ -70,7 +70,7 @@ else
     sleep 2s
 
     ## DDS
-    gnome-terminal -x bash -c "source ${HOME}/Avia_ws/devel/setup.bash; roslaunch bs_assis bs_dds.launch  mav_id:=${mav_id} mav_num:=${mav_num}; exec bash"
+    gnome-terminal -x bash -c "source ${HOME}/CMPCC/devel/setup.bash; roslaunch bs_assis bs_dds.launch  mav_id:=${mav_id} mav_num:=${mav_num}; exec bash"
     sleep 2s
 
     # 仿真气球运动
