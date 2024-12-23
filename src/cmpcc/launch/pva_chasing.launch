@@ -1,0 +1,8 @@
+<launch>
+
+<node pkg="nodelet" type="nodelet" name="manager" args="manager" output="screen"/>
+
+<node pkg="cmpcc" name="pva_chasing_node" type="pva_chasing_node" output="screen" respawn="true"/>
+
+
+</launch>

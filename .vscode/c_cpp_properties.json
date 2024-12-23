@@ -8,6 +8,7 @@
             "includePath": [
                 "~/CMPCC/devel/include/**",
                 "/opt/ros/melodic/include/**",
+                "/opt/ros/noetic/include/**",
                 "~/CMPCC/src/cmpcc/include/**",
                 "~/CMPCC/src/uav_simulator/DecompRos/decomp_ros_utils/include/**",
                 "~/CMPCC/src/uav_simulator/quadrotor_msgs/include/**",
@@ -15,7 +16,8 @@
                 "~/CMPCC/src/uav_simulator/so3_quadrotor/include/**",
                 "/usr/include/**",
                 "/usr/local/include/**",
-                "${workspaceFolder}/src/yolo/src/src/**"
+                "${workspaceFolder}/src/yolo/src/src/**",
+                "${workspaceFolder}/matplotlib"
             ],
             "name": "ROS",
             "intelliSenseMode": "gcc-x64",

@@ -83,6 +83,25 @@ target_link_libraries(fly_node
     osqp::osqp
 )
 
+add_executable(pva_chasing_node
+    src/pva_chasing.cpp
+    src/display_msg.cpp
+    src/mpc_solver.cpp
+    src/osqp_interface.cpp
+    src/model.cpp
+    src/map.cpp
+    src/bezier_base.cpp
+    src/my_spline.cpp
+    src/corridor.cpp) 
+target_include_directories(pva_chasing_node PRIVATE ${Python_INCLUDE_DIRS})
+add_dependencies(pva_chasing_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+target_link_libraries(pva_chasing_node
+    ${catkin_LIBRARIES}
+    ${Python_LIBRARIES}
+    yaml-cpp
+    osqp::osqp
+)
+
 add_executable(plot_bag_node
     src/plot_bag_node.cpp
     src/display_msg.cpp

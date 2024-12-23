@@ -47,7 +47,7 @@ void local_vel_cb(const geometry_msgs::TwistStamped::ConstPtr& msg){
 }
 void mpcc_cmd_cb(const quadrotor_msgs::PositionCommand::ConstPtr& msg){
     mpcc_cmd = *msg;
-    mpcc_cmd.yaw_dot = utils.yaw_control(mpcc_cmd.yaw, mav_yaw, 1.5, 1.0);
+    mpcc_cmd.yaw_dot = utils.yaw_control(mpcc_cmd.yaw, mav_yaw, 0.6, 0.3);
 }
 void attack_cmd_cb(const quadrotor_msgs::PositionCommand::ConstPtr& msg){
     attack_cmd = *msg;
@@ -88,6 +88,28 @@ void local_vel_target(const double vx, const double vy, const double vz)
                 pva_target.IGNORE_PX + pva_target.IGNORE_PY + pva_target.IGNORE_PZ ;
 
     pva_target.yaw_rate = 0;
+
+    local_pva_pub.publish(pva_target);
+}
+
+void local_pv_target(const double px, const double py, const double pz, 
+        const double vx, const double vy, const double vz, const double yr=0.)
+{
+    mavros_msgs::PositionTarget pva_target;
+    pva_target.coordinate_frame = 1;
+    pva_target.header.stamp = ros::Time::now();
+
+    pva_target.position.x = px;
+    pva_target.position.y = py;
+    pva_target.position.z = pz;
+    pva_target.velocity.x = vx;
+    pva_target.velocity.y = vy;
+    pva_target.velocity.z = vz;
+
+    pva_target.type_mask = pva_target.IGNORE_YAW + pva_target.FORCE + 
+                pva_target.IGNORE_AFX + pva_target.IGNORE_AFY + pva_target.IGNORE_AFZ;
+
+    pva_target.yaw_rate = yr;
 
     local_pva_pub.publish(pva_target);
 }
@@ -282,8 +304,11 @@ int main(int argc, char **argv)
         std::cout << "MODE: path" << std::endl;
         while (ros::ok())
         {
-            mpcc_ax = mpcc_cmd.acceleration.x;  mpcc_ay = mpcc_cmd.acceleration.y;  mpcc_az = mpcc_cmd.acceleration.z;  mpcc_yr = mpcc_cmd.yaw_dot;
-            local_acc_target(mpcc_ax, mpcc_ay, mpcc_az, mpcc_yr);
+            // mpcc_ax = mpcc_cmd.acceleration.x;  mpcc_ay = mpcc_cmd.acceleration.y;  mpcc_az = mpcc_cmd.acceleration.z;  mpcc_yr = mpcc_cmd.yaw_dot;
+            // local_acc_target(mpcc_ax, mpcc_ay, mpcc_az, mpcc_yr);
+            local_pv_target(mpcc_cmd.position.x, mpcc_cmd.position.y, mpcc_cmd.position.z, mpcc_cmd.velocity.x, mpcc_cmd.velocity.y, mpcc_cmd.velocity.z, mpcc_cmd.yaw_dot);
+            // local_pva_target(mpcc_cmd.position.x, mpcc_cmd.position.y, mpcc_cmd.position.z, mpcc_cmd.velocity.x, mpcc_cmd.velocity.y, mpcc_cmd.velocity.z, mpcc_cmd.acceleration.x, mpcc_cmd.acceleration.y, mpcc_cmd.acceleration.z, mpcc_cmd.yaw_dot);
+
 
             ros::spinOnce();
             rate.sleep();
