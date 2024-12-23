@@ -4,10 +4,11 @@
 #include <geometry_msgs/PoseStamped.h>
 #include <geometry_msgs/Vector3.h>
 #include <geometry_msgs/TwistStamped.h>
+#include <nav_msgs/Path.h>
 #include <visualization_msgs/Marker.h>
 #include "map.h"
 
-ros::Publisher cmd_pub, drone_pub, cmd_vis_pub;
+ros::Publisher cmd_pub, drone_pub, cmd_vis_pub, refer_pub;
 ft::Map map;
 double cmdT = 0.02;
 Eigen::Vector3d pDrone, vDrone;
@@ -15,6 +16,23 @@ quadrotor_msgs::PositionCommand cmdMsg;
 bool is_get_pos, is_get_path;
 geometry_msgs::Point tmpPoint;
 geometry_msgs::Vector3 tmpVector;
+nav_msgs::Path refTraj_msg;
+
+void displayRefTraj(){
+    geometry_msgs::PoseStamped tmpPose;
+    double theta = 0;
+    refTraj_msg.poses.clear();
+    while (theta < map.thetaMax)
+    {
+        Eigen::Vector3d pos;
+        map.getGlobalCommand(theta, pos);
+        tmpPose.pose.position.x = pos(0);
+        tmpPose.pose.position.y = pos(1);
+        tmpPose.pose.position.z = pos(2);
+        refTraj_msg.poses.push_back(tmpPose);
+        theta += 0.01;
+    }
+}
 
 void local_pos_cb(const geometry_msgs::PoseStamped::ConstPtr& msg) {
     is_get_pos = true;
@@ -28,6 +46,8 @@ void local_vel_cb(const geometry_msgs::TwistStamped::ConstPtr& msg) {
 void refer_path_params_callback(const swarm_msgs::TimeOptimalPMMPieces::ConstPtr& msg) {
     is_get_path = true;
     map.setPathPts(msg);
+    displayRefTraj();
+    refer_pub.publish(refTraj_msg);
 }
 
 void cmd_callback(const ros::TimerEvent& event) {
@@ -125,6 +145,7 @@ int main(int argc, char **argv) {
     cmd_pub = nodeHandle.advertise<quadrotor_msgs::PositionCommand>("/position_cmd", 1);
     drone_pub = nodeHandle.advertise<visualization_msgs::Marker>("drone_pose", 1);
     cmd_vis_pub = nodeHandle.advertise<visualization_msgs::Marker>("cmd_vis", 1);
+    refer_pub = nodeHandle.advertise<nav_msgs::Path>("refer_path", 1);
 
     // Subscriber
     ros::Subscriber sub_path = nodeHandle.subscribe("/refer_path_params", 5, refer_path_params_callback);
@@ -137,6 +158,7 @@ int main(int argc, char **argv) {
 
     ros::MultiThreadedSpinner spinner(4);
     cmdMsg.header.frame_id = "world";
+    refTraj_msg.header.frame_id = "world";
 
     // init position: 
     tmpPoint.x = 0; tmpPoint.y = 0; tmpPoint.z = 0; cmdMsg.position = tmpPoint;
