@@ -1,5 +1,5 @@
 /*
- * Bian 2023.08.17
+ * Bian,liu 2024.12.23
  * target det with yolo v5 7.0, engine must be generated with yolov5s.pt
  * param: KNum=2
  *        Pixel of resized image: (640,640)
