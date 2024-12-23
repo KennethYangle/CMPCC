@@ -220,9 +220,9 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
     merge_results(all_detections, split_results, pos_start);
 
     std::vector<Detection> res; // 保存 NMS 后的结果
-    float conf_thresh = 0.5f;
-    float nms_thresh = 0.45f;
-    call_nms_from_detections(all_detections, conf_thresh, nms_thresh, res);
+    // float conf_thresh = 0.5f;
+    // float nms_thresh = 0.45f;
+    call_nms_from_detections(all_detections, kConfThresh, kNmsThresh, res);
     
 //     //Preprocess
 //     cuda_batch_preprocess(img_batch, gpu_buffers[0], kInputW, kInputH, stream);
