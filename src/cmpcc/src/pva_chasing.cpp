@@ -63,85 +63,57 @@ void cmd_callback(const ros::TimerEvent& event) {
     drone_marker.header.stamp = ros::Time::now();
     drone_marker.ns = "drone";
     drone_marker.id = 0;
-    drone_marker.type = visualization_msgs::Marker::SPHERE;
+    drone_marker.type = visualization_msgs::Marker::ARROW;
     drone_marker.action = visualization_msgs::Marker::ADD;
     drone_marker.pose.position = tmpPoint;
-    drone_marker.scale.x = 0.2;  // Size of the sphere
-    drone_marker.scale.y = 0.2;
-    drone_marker.scale.z = 0.2;
+    drone_marker.pose.orientation.w = 1.0;  // No rotation, aligned with world axis
+    drone_marker.scale.x = 0.1;  // Arrow length
+    drone_marker.scale.y = 0.02; // Arrow shaft diameter
+    drone_marker.scale.z = 0.02; // Arrow head diameter
     drone_marker.color.a = 1.0;  // Alpha
-    drone_marker.color.r = 0.0;
-    drone_marker.color.g = 1.0;  // Green for drone position
+    drone_marker.color.r = 1.0;  // Red for drone velocity
+    drone_marker.color.g = 0.0;
     drone_marker.color.b = 0.0;
-    drone_pub.publish(drone_marker);
-
-    // Visualize drone velocity as an arrow
-    visualization_msgs::Marker velocity_marker;
-    velocity_marker.header.frame_id = "world";
-    velocity_marker.header.stamp = ros::Time::now();
-    velocity_marker.ns = "drone_velocity";
-    velocity_marker.id = 1;
-    velocity_marker.type = visualization_msgs::Marker::ARROW;
-    velocity_marker.action = visualization_msgs::Marker::ADD;
-    velocity_marker.pose.position = tmpPoint;
-    velocity_marker.pose.orientation.w = 1.0;  // No rotation, aligned with world axis
-    velocity_marker.scale.x = 0.1;  // Arrow length (scale)
-    velocity_marker.scale.y = 0.02; // Arrow shaft diameter
-    velocity_marker.scale.z = 0.02; // Arrow head diameter
-    velocity_marker.color.a = 1.0;  // Alpha
-    velocity_marker.color.r = 1.0;  // Red for velocity direction
-    velocity_marker.color.g = 0.0;
-    velocity_marker.color.b = 0.0;
-    velocity_marker.points.push_back(tmpPoint);  // Start of the arrow
+    geometry_msgs::Point start_point;
+    start_point.x = pDrone.x();
+    start_point.y = pDrone.y();
+    start_point.z = pDrone.z();
+    drone_marker.points.push_back(start_point);  // Start of the arrow (drone position)
     geometry_msgs::Point end_point;
-    end_point.x = tmpPoint.x + velocity_d[0];
-    end_point.y = tmpPoint.y + velocity_d[1];
-    end_point.z = tmpPoint.z + velocity_d[2];
-    velocity_marker.points.push_back(end_point);  // End of the arrow
-    drone_pub.publish(velocity_marker);
+    end_point.x = pDrone.x() + vDrone[0];
+    end_point.y = pDrone.y() + vDrone[1];
+    end_point.z = pDrone.z() + vDrone[2];
+    drone_marker.points.push_back(end_point);  // End of the arrow (drone position + velocity)
+    drone_pub.publish(drone_marker);
 
     // Visualization of control command position and velocity
     visualization_msgs::Marker cmd_marker;
     cmd_marker.header.frame_id = "world";
     cmd_marker.header.stamp = ros::Time::now();
     cmd_marker.ns = "cmd";
-    cmd_marker.id = 0;
-    cmd_marker.type = visualization_msgs::Marker::SPHERE;
+    cmd_marker.id = 1;
+    cmd_marker.type = visualization_msgs::Marker::ARROW;
     cmd_marker.action = visualization_msgs::Marker::ADD;
-    cmd_marker.pose.position = tmpPoint;  // Position of the command
-    cmd_marker.scale.x = 0.2;  // Size of the sphere
-    cmd_marker.scale.y = 0.2;
-    cmd_marker.scale.z = 0.2;
+    cmd_marker.pose.position = tmpPoint;
+    cmd_marker.pose.orientation.w = 1.0;  // No rotation, aligned with world axis
+    cmd_marker.scale.x = 0.1;  // Arrow length
+    cmd_marker.scale.y = 0.02; // Arrow shaft diameter
+    cmd_marker.scale.z = 0.02; // Arrow head diameter
     cmd_marker.color.a = 1.0;  // Alpha
     cmd_marker.color.r = 0.0;
     cmd_marker.color.g = 0.0;
-    cmd_marker.color.b = 1.0;  // Blue for command position
-    cmd_vis_pub.publish(cmd_marker);
-
-    // Visualize control command velocity as an arrow
-    visualization_msgs::Marker cmd_velocity_marker;
-    cmd_velocity_marker.header.frame_id = "world";
-    cmd_velocity_marker.header.stamp = ros::Time::now();
-    cmd_velocity_marker.ns = "cmd_velocity";
-    cmd_velocity_marker.id = 1;
-    cmd_velocity_marker.type = visualization_msgs::Marker::ARROW;
-    cmd_velocity_marker.action = visualization_msgs::Marker::ADD;
-    cmd_velocity_marker.pose.position = tmpPoint;
-    cmd_velocity_marker.pose.orientation.w = 1.0;
-    cmd_velocity_marker.scale.x = 0.1;  // Arrow length
-    cmd_velocity_marker.scale.y = 0.02; // Arrow shaft diameter
-    cmd_velocity_marker.scale.z = 0.02; // Arrow head diameter
-    cmd_velocity_marker.color.a = 1.0;  // Alpha
-    cmd_velocity_marker.color.r = 0.0;
-    cmd_velocity_marker.color.g = 0.0;
-    cmd_velocity_marker.color.b = 1.0;  // Blue for command velocity
-    cmd_velocity_marker.points.push_back(tmpPoint);
+    cmd_marker.color.b = 1.0;  // Blue for command velocity
+    geometry_msgs::Point cmd_start_point;
+    cmd_start_point.x = position_d[0];
+    cmd_start_point.y = position_d[1];
+    cmd_start_point.z = position_d[2];
+    cmd_marker.points.push_back(cmd_start_point);  // Start of the arrow (command position)
     geometry_msgs::Point cmd_end_point;
-    cmd_end_point.x = tmpPoint.x + velocity_d[0];
-    cmd_end_point.y = tmpPoint.y + velocity_d[1];
-    cmd_end_point.z = tmpPoint.z + velocity_d[2];
-    cmd_velocity_marker.points.push_back(cmd_end_point);
-    cmd_vis_pub.publish(cmd_velocity_marker);
+    cmd_end_point.x = position_d[0] + velocity_d[0];
+    cmd_end_point.y = position_d[1] + velocity_d[1];
+    cmd_end_point.z = position_d[2] + velocity_d[2];
+    cmd_marker.points.push_back(cmd_end_point);  // End of the arrow (command position + velocity)
+    cmd_vis_pub.publish(cmd_marker);
 }
 
 int main(int argc, char **argv) {
