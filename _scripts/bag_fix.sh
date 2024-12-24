@@ -1,6 +1,6 @@
 #!/bin/bash 
 SH_DIR=$(dirname $0)
-BAG_DIR="${SH_DIR}/../../bag"
+BAG_DIR="${SH_DIR}/../../record"
 
 # file_name=$(basename $1)
 file_name=$(basename $1 .bag.active)
