@@ -85,7 +85,6 @@ void cmd_callback(const ros::TimerEvent& event) {
     drone_marker.id = 0;
     drone_marker.type = visualization_msgs::Marker::ARROW;
     drone_marker.action = visualization_msgs::Marker::ADD;
-    drone_marker.pose.position = tmpPoint;
     drone_marker.pose.orientation.w = 1.0;  // No rotation, aligned with world axis
     drone_marker.scale.x = 0.1;  // Arrow length
     drone_marker.scale.y = 0.02; // Arrow shaft diameter
@@ -114,7 +113,6 @@ void cmd_callback(const ros::TimerEvent& event) {
     cmd_marker.id = 1;
     cmd_marker.type = visualization_msgs::Marker::ARROW;
     cmd_marker.action = visualization_msgs::Marker::ADD;
-    cmd_marker.pose.position = tmpPoint;
     cmd_marker.pose.orientation.w = 1.0;  // No rotation, aligned with world axis
     cmd_marker.scale.x = 0.1;  // Arrow length
     cmd_marker.scale.y = 0.02; // Arrow shaft diameter
