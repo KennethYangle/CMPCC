@@ -99,7 +99,8 @@ sleep 1s
 # gnome-terminal --tab -t "Path Planning" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun cmpcc bezier.py;exec bash"
 gnome-terminal --tab -t "Path Planning" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun path path_planning_node;exec bash"
 sleep 1s
-gnome-terminal --tab -t "MPCC" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch cmpcc fly.launch;exec bash"
+# gnome-terminal --tab -t "MPCC" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch cmpcc fly.launch;exec bash"
+gnome-terminal --tab -t "MPCC" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch cmpcc pva_chasing.launch;exec bash"
 sleep 2s
 
 # 拦截控制

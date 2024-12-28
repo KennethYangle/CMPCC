@@ -47,7 +47,7 @@ void local_vel_cb(const geometry_msgs::TwistStamped::ConstPtr& msg){
 }
 void mpcc_cmd_cb(const quadrotor_msgs::PositionCommand::ConstPtr& msg){
     mpcc_cmd = *msg;
-    mpcc_cmd.yaw_dot = utils.yaw_control(mpcc_cmd.yaw, mav_yaw, 0.6, 0.3);
+    mpcc_cmd.yaw_dot = utils.yaw_control(mpcc_cmd.yaw, mav_yaw, 1.5, 1.0);
 }
 void attack_cmd_cb(const quadrotor_msgs::PositionCommand::ConstPtr& msg){
     attack_cmd = *msg;
@@ -290,11 +290,17 @@ int main(int argc, char **argv)
         std::cout << "MODE: all" << std::endl;
         while (ros::ok())
         {
-            // local_pva_target(mpcc_cmd.position.x, mpcc_cmd.position.y, mpcc_cmd.position.z, mpcc_cmd.velocity.x, mpcc_cmd.velocity.y, mpcc_cmd.velocity.z, mpcc_cmd.acceleration.x, mpcc_cmd.acceleration.y, mpcc_cmd.acceleration.z, mpcc_cmd.yaw_dot);
             w = attack_cmd.weight;
-            mpcc_ax = mpcc_cmd.acceleration.x;  mpcc_ay = mpcc_cmd.acceleration.y;  mpcc_az = mpcc_cmd.acceleration.z;  mpcc_yr = mpcc_cmd.yaw_dot;
-            att_ax = attack_cmd.acceleration.x;  att_ay = attack_cmd.acceleration.y;  att_az = attack_cmd.acceleration.z;  att_yr = attack_cmd.yaw_dot;
-            local_acc_target((1-w)*mpcc_ax + w*att_ax, (1-w)*mpcc_ay + w*att_ay, (1-w)*mpcc_az + w*att_az, (1-w)*mpcc_yr + w*att_yr);
+            // mpcc_ax = mpcc_cmd.acceleration.x;  mpcc_ay = mpcc_cmd.acceleration.y;  mpcc_az = mpcc_cmd.acceleration.z;  mpcc_yr = mpcc_cmd.yaw_dot;
+            // att_ax = attack_cmd.acceleration.x;  att_ay = attack_cmd.acceleration.y;  att_az = attack_cmd.acceleration.z;  att_yr = attack_cmd.yaw_dot;
+            // local_acc_target((1-w)*mpcc_ax + w*att_ax, (1-w)*mpcc_ay + w*att_ay, (1-w)*mpcc_az + w*att_az, (1-w)*mpcc_yr + w*att_yr);
+            if (w > 0.99) {
+                att_ax = attack_cmd.acceleration.x;  att_ay = attack_cmd.acceleration.y;  att_az = attack_cmd.acceleration.z;  att_yr = attack_cmd.yaw_dot;
+                local_acc_target(att_ax, att_ay, att_az, att_yr);
+            }
+            else {
+                local_pva_target(mpcc_cmd.position.x, mpcc_cmd.position.y, mpcc_cmd.position.z, mpcc_cmd.velocity.x, mpcc_cmd.velocity.y, mpcc_cmd.velocity.z, mpcc_cmd.acceleration.x, mpcc_cmd.acceleration.y, mpcc_cmd.acceleration.z, mpcc_cmd.yaw_dot);
+            }
 
             ros::spinOnce();
             rate.sleep();
@@ -306,8 +312,8 @@ int main(int argc, char **argv)
         {
             // mpcc_ax = mpcc_cmd.acceleration.x;  mpcc_ay = mpcc_cmd.acceleration.y;  mpcc_az = mpcc_cmd.acceleration.z;  mpcc_yr = mpcc_cmd.yaw_dot;
             // local_acc_target(mpcc_ax, mpcc_ay, mpcc_az, mpcc_yr);
-            local_pv_target(mpcc_cmd.position.x, mpcc_cmd.position.y, mpcc_cmd.position.z, mpcc_cmd.velocity.x, mpcc_cmd.velocity.y, mpcc_cmd.velocity.z, mpcc_cmd.yaw_dot);
-            // local_pva_target(mpcc_cmd.position.x, mpcc_cmd.position.y, mpcc_cmd.position.z, mpcc_cmd.velocity.x, mpcc_cmd.velocity.y, mpcc_cmd.velocity.z, mpcc_cmd.acceleration.x, mpcc_cmd.acceleration.y, mpcc_cmd.acceleration.z, mpcc_cmd.yaw_dot);
+            // local_pv_target(mpcc_cmd.position.x, mpcc_cmd.position.y, mpcc_cmd.position.z, mpcc_cmd.velocity.x, mpcc_cmd.velocity.y, mpcc_cmd.velocity.z, mpcc_cmd.yaw_dot);
+            local_pva_target(mpcc_cmd.position.x, mpcc_cmd.position.y, mpcc_cmd.position.z, mpcc_cmd.velocity.x, mpcc_cmd.velocity.y, mpcc_cmd.velocity.z, mpcc_cmd.acceleration.x, mpcc_cmd.acceleration.y, mpcc_cmd.acceleration.z, mpcc_cmd.yaw_dot);
 
 
             ros::spinOnce();
