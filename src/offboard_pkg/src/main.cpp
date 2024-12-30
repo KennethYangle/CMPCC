@@ -10,7 +10,7 @@
 #include <mavros_msgs/PositionTarget.h>
 #include <quadrotor_msgs/PositionCommand.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <utils.h>
+#include "utils_offboard.h"
 
 mavros_msgs::State current_state;
 geometry_msgs::PoseStamped local_pos, ref_pose;

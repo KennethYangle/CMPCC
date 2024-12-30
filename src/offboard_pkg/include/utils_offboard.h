@@ -1,5 +1,5 @@
-#ifndef UTILS_H
-#define UTILS_H
+#ifndef UTILS_OFFBOARD_H
+#define UTILS_OFFBOARD_H
 
 #include <iostream>
 #include <cmath>
@@ -11,4 +11,4 @@ public:
     double Saturation(double a, double up);
 };
 
-#endif // UTILS_H
+#endif // UTILS_OFFBOARD_H

@@ -19,6 +19,6 @@ include_directories(
 
 add_executable(main_node
   src/main.cpp
-  src/utils.cpp
+  src/utils_offboard.cpp
 )
 target_link_libraries(main_node ${catkin_LIBRARIES})
