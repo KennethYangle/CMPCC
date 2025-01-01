@@ -101,7 +101,8 @@ private:
     void stateCallback(const mavros_msgs::State::ConstPtr& msg) {
         // Check if the drone is unlocked
         if (!msg->armed && msg->connected) {
-            initial_z_offset_ = trans_lidar_mav_.pose.position.z;
+            initial_z_offset_ = trans_lidar_mav_.pose.position.z - mav_pos_.z;
+            std::cout << "initial_z_offset_: " << initial_z_offset_ << std::endl;
         }
     }
 
@@ -145,6 +146,8 @@ private:
 
             // 目标位置加上激光雷达相对于无人机的位置
             tf::Vector3 transformed_position = point_pos + trans_pos - matching_offset;
+            // std::cout << "trans_pos: " << trans_pos.x() << ", " << trans_pos.y() << ", " << trans_pos.z() << std::endl;
+            // std::cout << "matching_offset: " << matching_offset.x() << ", " << matching_offset.y() << ", " << matching_offset.z() << std::endl;
 
             // 将转换后的位置赋值给目标点
             transformed_point.position.x = transformed_position.x();

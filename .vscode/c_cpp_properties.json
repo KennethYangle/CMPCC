@@ -18,7 +18,8 @@
                 "/usr/local/include/**",
                 "${workspaceFolder}/src/yolo/src/src/**",
                 "${workspaceFolder}/matplotlib",
-                "${workspaceFolder}/src/offboard_pkg/include"
+                "${workspaceFolder}/src/offboard_pkg/include",
+                "${workspaceFolder}/src/path/include"
             ],
             "name": "ROS",
             "intelliSenseMode": "gcc-x64",
