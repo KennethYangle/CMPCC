@@ -65,8 +65,7 @@ bool MavDataNode::publish(MavData* sendData)
     return false;
 }
 
-geometry_msgs::Point calculateRelativePosition(const float& global_pos_latitude, const float& global_pos_longitude, const float& global_pos_altitude,
-                                               const mavros_msgs::HomePosition& hp) {
+geometry_msgs::Point calculateRelativePosition(const float& global_pos_latitude, const float& global_pos_longitude, const float& global_pos_altitude, const mavros_msgs::HomePosition& hp) {
     double lat_diff = global_pos_latitude - hp.geo.latitude;
     double lon_diff = global_pos_longitude - hp.geo.longitude;
     double alt_diff = global_pos_altitude - hp.geo.altitude;
@@ -79,6 +78,30 @@ geometry_msgs::Point calculateRelativePosition(const float& global_pos_latitude,
     relative_position.x = lon_dist; // 东/西方向
     relative_position.y = lat_dist; // 北/南方向
     relative_position.z = alt_diff; // 高度差
+
+    return relative_position;
+}
+
+geometry_msgs::Point calculateRelativePositionGeoLib(const double& global_pos_latitude, const double& global_pos_longitude, const double& global_pos_altitude, const mavros_msgs::HomePosition& hp) {
+    using namespace GeographicLib;
+    
+    // 初始化基准点的坐标（Home位置）
+    double home_lat = hp.geo.latitude;
+    double home_lon = hp.geo.longitude;
+    double home_alt = hp.geo.altitude;
+
+    // 使用GeographicLib的LocalCartesian类进行ENU坐标转换
+    LocalCartesian proj(home_lat, home_lon, home_alt); // 设置基准位置
+    double east, north, up;
+
+    // 将global_pos的经纬度转换为ENU坐标
+    proj.Forward(global_pos_latitude, global_pos_longitude, global_pos_altitude, east, north, up);
+
+    // 返回局部坐标系的相对位置
+    geometry_msgs::Point relative_position;
+    relative_position.x = east;  // 东/西方向
+    relative_position.y = north; // 北/南方向
+    relative_position.z = up;    // 高度差
 
     return relative_position;
 }

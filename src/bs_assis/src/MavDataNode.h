@@ -15,7 +15,8 @@
 #include <geometry_msgs/Point.h>
 #include <sensor_msgs/NavSatFix.h>
 #include <mavros_msgs/HomePosition.h>
-
+#include <GeographicLib/Geocentric.hpp>
+#include <GeographicLib/LocalCartesian.hpp>
 
 extern ros::V_Publisher velPubs;
 extern ros::V_Publisher posPubs;
@@ -30,9 +31,8 @@ struct mav_data_struct
 
 const double EARTH_RADIUS = 6371000; // 地球半径，单位：米
 
-geometry_msgs::Point calculateRelativePosition(const float& global_pos_latitude, const float& global_pos_longitude, const float& global_pos_altitude,
-                                               const mavros_msgs::HomePosition& hp);
-
+geometry_msgs::Point calculateRelativePosition(const float& global_pos_latitude, const float& global_pos_longitude, const float& global_pos_altitude, const mavros_msgs::HomePosition& hp);
+geometry_msgs::Point calculateRelativePositionGeoLib(const double& global_pos_latitude, const double& global_pos_longitude, const double& global_pos_altitude, const mavros_msgs::HomePosition& hp);
 
 class MavDataSubscriber : public DDS_Subscriber
 {
@@ -46,8 +46,12 @@ class MavDataSubscriber : public DDS_Subscriber
             {
                 geometry_msgs::PoseStamped posMsg;
                 geometry_msgs::TwistStamped velMsg;
-                geometry_msgs::Point relative_pos = calculateRelativePosition(
+                // geometry_msgs::Point relative_pos = calculateRelativePosition(
+                //     recvData.latitude(), recvData.longitude(), recvData.altitude(), home_pos);
+                // std::cout << "relative_pos_ori: " << relative_pos.x << ", " << relative_pos.y << ", " << relative_pos.z << std::endl;
+                geometry_msgs::Point relative_pos = calculateRelativePositionGeoLib(
                     recvData.latitude(), recvData.longitude(), recvData.altitude(), home_pos);
+                // std::cout << "relative_pos_GeoLib: " << relative_pos.x << ", " << relative_pos.y << ", " << relative_pos.z << std::endl;
                 
                 posMsg.pose.position.x  = relative_pos.x;
                 posMsg.pose.position.y  = relative_pos.y;
