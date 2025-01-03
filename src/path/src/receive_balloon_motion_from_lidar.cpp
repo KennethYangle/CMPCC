@@ -154,10 +154,21 @@ private:
             transformed_point.position.y = transformed_position.y();
             transformed_point.position.z = transformed_position.z();
 
-            // 如果启用了匹配
-            if (is_matching_ && matchWithUAV(transformed_point)) {
-                // 如果匹配上了，不需要发布这个目标点
-                continue;
+            // 如果不进行匹配，则清除与无人机10米范围内的点
+            if (!is_matching_) {
+                double dx = fabs(transformed_point.position.x - mav_pos_.x);
+                double dy = fabs(transformed_point.position.y - mav_pos_.y);
+
+                if (sqrt(dx*dx+dy*dy) <= 10.0) {
+                    // 距离无人机10米以内的点，直接跳过
+                    continue;
+                }
+            } else {
+                // If matching is enabled, try to match the point
+                if (matchWithUAV(transformed_point)) {
+                    // 如果匹配成功，跳过此点
+                    continue;
+                }
             }
 
             // 保持目标的速度不变
