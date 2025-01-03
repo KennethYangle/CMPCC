@@ -161,8 +161,8 @@ private:
             }
 
             // 保持目标的速度不变
-            // transformed_point.velocity = point.velocity;
-            transformed_point.velocity.x = transformed_point.velocity.y = transformed_point.velocity.z = 0.0;
+            transformed_point.velocity = point.velocity;
+            // transformed_point.velocity.x = transformed_point.velocity.y = transformed_point.velocity.z = 0.0;
             
             // 保持目标的体积不变
             transformed_point.volume = point.volume;
