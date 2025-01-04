@@ -1,6 +1,7 @@
 #include <ros/ros.h>
 #include <visualization_msgs/Marker.h>
 #include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/TwistStamped.h>
 #include <geometry_msgs/Vector3.h>
 #include <swarm_msgs/MassPoint.h>
 #include <swarm_msgs/MassPoints.h>
@@ -16,6 +17,7 @@ public:
         // 订阅话题
         pose_sub_ = nh.subscribe("/drone_2/mavros/local_position/pose", 10, &BalloonMotionReceiver::poseCallback, this);
         mav_pose_sub_ = nh.subscribe("/mavros/local_position/pose", 10, &BalloonMotionReceiver::mavposeCallback, this);
+        mav_vel_sub_ = nh.subscribe("/mavros/local_position/velocity_local", 10, &BalloonMotionReceiver::mavvelCallback, this);
         masspoint_sub_ = nh.subscribe("/drone_2/balloons/masspoint", 10, &BalloonMotionReceiver::masspointCallback, this);
         state_sub_ = nh.subscribe("/mavros/state", 10, &BalloonMotionReceiver::stateCallback, this);
 
@@ -64,6 +66,7 @@ public:
 private:
     ros::Subscriber pose_sub_;
     ros::Subscriber mav_pose_sub_;
+    ros::Subscriber mav_vel_sub_;
     ros::Subscriber masspoint_sub_;
     ros::Subscriber state_sub_;
     ros::Publisher masspoint_pub_;
@@ -81,6 +84,7 @@ private:
     double matching_variation_th_;  // 匹配偏移量变化阈值
 
     geometry_msgs::Point mav_pos_;
+    geometry_msgs::Point mav_vel_;
     geometry_msgs::Point last_matching_offset_;  // 上一次匹配的偏移量
 
     visualization_msgs::Marker marker;
@@ -119,6 +123,13 @@ private:
         mav_pos_.z = msg->pose.position.z;
     }
 
+    // 接收无人机速度并保存
+    void mavvelCallback(const geometry_msgs::TwistStamped::ConstPtr& msg) {
+        mav_vel_.x = msg->twist.linear.x;
+        mav_vel_.y = msg->twist.linear.y;
+        mav_vel_.z = msg->twist.linear.z;
+    }
+
     // 接收激光雷达检测的目标并进行坐标系转换
     void masspointCallback(const swarm_msgs::MassPoints::ConstPtr& msg) {
         if (!is_receive_lidar_pose_) {
@@ -128,6 +139,10 @@ private:
 
         // 创建一个新的MassPoints消息
         swarm_msgs::MassPoints transformed_masspoints;
+
+        // Track the point with the smallest combined error
+        double min_combined_error = std::numeric_limits<double>::infinity();
+        int matching_point_index = -1;
 
         // 变换每一个目标点
         for (int i = 0; i < msg->points.size(); ++i) {
@@ -140,8 +155,8 @@ private:
             // Transform the target position to the UAV coordinate system
             tf::Vector3 point_pos(point.position.x, point.position.y, point.position.z);
             tf::Vector3 trans_pos(trans_lidar_mav_.pose.position.x,
-                                  trans_lidar_mav_.pose.position.y,
-                                  corrected_z);  // Use corrected z value
+                                trans_lidar_mav_.pose.position.y,
+                                corrected_z);  // Use corrected z value
             tf::Vector3 matching_offset(last_matching_offset_.x, last_matching_offset_.y, last_matching_offset_.z);
 
             // 目标位置加上激光雷达相对于无人机的位置
@@ -154,53 +169,71 @@ private:
             transformed_point.position.y = transformed_position.y();
             transformed_point.position.z = transformed_position.z();
 
-            // 如果启用了匹配
-            if (is_matching_ && matchWithUAV(transformed_point)) {
-                // 如果匹配上了，不需要发布这个目标点
-                continue;
+            // 如果不进行匹配，则清除与无人机10米范围内的点
+            if (!is_matching_) {
+                double dx = transformed_point.position.x - mav_pos_.x;
+                double dy = transformed_point.position.y - mav_pos_.y;
+
+                if (sqrt(dx * dx + dy * dy) <= 10.0) {
+                    // 距离无人机10米以内的点，直接跳过
+                    continue;
+                }
+            } else {
+                // If matching is enabled, calculate the combined error for each point
+                double dx = transformed_point.position.x - mav_pos_.x;
+                double dy = transformed_point.position.y - mav_pos_.y;
+                double position_error = sqrt(dx * dx + dy * dy);
+
+                // Calculate the velocity error
+                double dvx = transformed_point.velocity.x - mav_vel_.x;
+                double dvy = transformed_point.velocity.y - mav_vel_.y;
+                double dvz = transformed_point.velocity.z - mav_vel_.z;
+                double velocity_error = sqrt(dvx * dvx + dvy * dvy + dvz * dvz);
+
+                // Calculate the combined error: x-y distance error + 5 times velocity error
+                double combined_error = position_error + 3 * velocity_error;
+
+                // If this is the smallest combined error so far, track it
+                if (combined_error < min_combined_error && combined_error < 25) {
+                    min_combined_error = combined_error;
+                    matching_point_index = i;  // Store the index of the best matching point
+                }
             }
 
             // 保持目标的速度不变
-            // transformed_point.velocity = point.velocity;
-            transformed_point.velocity.x = transformed_point.velocity.y = transformed_point.velocity.z = 0.0;
-            
+            transformed_point.velocity = point.velocity;
+            // transformed_point.velocity.x = transformed_point.velocity.y = transformed_point.velocity.z = 0.0;
+
             // 保持目标的体积不变
             transformed_point.volume = point.volume;
 
             // 将转换后的目标点添加到结果中
             transformed_masspoints.points.push_back(transformed_point);
-
-            // 显示转换后的气球位置
-            rviz_interface(i, transformed_point);
         }
 
+        // After processing all points, check if there was a match
+        if (is_matching_ && matching_point_index >= 0) {
+            // Update the last matching offset with the position of the matched point
+            swarm_msgs::MassPoint matched_point = transformed_masspoints.points[matching_point_index];
+            last_matching_offset_.x += matched_point.position.x - mav_pos_.x;
+            last_matching_offset_.y += matched_point.position.y - mav_pos_.y;
+            last_matching_offset_.z += matched_point.position.z - mav_pos_.z;
+
+            std::cout << "Matching Success.\n"
+                    << "last_matching_offset_: " << last_matching_offset_.x << ", "
+                    << last_matching_offset_.y << ", " << last_matching_offset_.z
+                    << "\nmin_combined_error: " << min_combined_error << std::endl;
+            
+            // The point at 'matching_point_index' is the best match, remove it from the list
+            transformed_masspoints.points.erase(transformed_masspoints.points.begin() + matching_point_index);
+        }
+
+        // 显示转换后的气球位置
+        for (int i=0; i<transformed_masspoints.points.size(); i++) {
+            rviz_interface(i, transformed_masspoints.points[i]);
+        }
+        
         latest_transformed_masspoints_ = transformed_masspoints;  // 保存最新的处理数据
-    }
-
-    // 判断目标点是否与无人机匹配
-    bool matchWithUAV(const swarm_msgs::MassPoint& point) {
-        double dx = fabs(point.position.x - mav_pos_.x);
-        double dy = fabs(point.position.y - mav_pos_.y);
-        double dz = fabs(point.position.z - mav_pos_.z);
-
-        // 检查是否满足匹配条件
-        if (dx < matching_horizontal_th_ && dy < matching_horizontal_th_ && dz < matching_vertical_th_) {
-            // 检查与上次匹配偏移量的变化
-            if (fabs(dx) < matching_variation_th_ &&
-                fabs(dy) < matching_variation_th_ &&
-                fabs(dz) < matching_variation_th_) {
-
-                // 更新上次匹配偏移量
-                last_matching_offset_.x += dx;
-                last_matching_offset_.y += dy;
-                last_matching_offset_.z += dz;
-                std::cout << "Matching Success.\n" << "last_matching_offset_: " << last_matching_offset_.x << ", " << last_matching_offset_.y << ", " << last_matching_offset_.z << "\ndx: " << dx << ", dy: " << dy << ", dz: " << dz << std::endl;
-
-                return true;  // 匹配成功
-            }
-        }
-
-        return false;  // 匹配失败
     }
 
     void timerCallback(const ros::TimerEvent&) {
