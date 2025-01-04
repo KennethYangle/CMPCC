@@ -191,50 +191,62 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
     // img = rotateImage(img , 180);
     img_batch.push_back(img);
 
+    //Preprocess
+    cuda_batch_preprocess(img_batch, gpu_buffers[0], kInputW, kInputH, stream);
+
+    // Run inference
+    
+    //  std::cout<<"ready run"<<std::endl;
+    infer(*context, stream, (void**)gpu_buffers, cpu_output_buffer, kBatchSize);
+    
+    // NMS
+    std::vector<std::vector<Detection>> res_batch;
+    batch_nms(res_batch, cpu_output_buffer, img_batch.size(), kOutputSize, kConfThresh, kNmsThresh);
+    //draw fuzhuxian
+    // std::cout<<img.size().width<<","<<img.size().height<<std::endl;
+    // double real_image_center_x = img.size().width/2;
+    // double real_image_center_y = img.size().height/2;
+    
+    // Draw bounding boxes
+    auto& res = res_batch[0];
+
+    std::vector<Detection> res1; 
+    if (res.empty()) {
+    // 小目标识别
     // 定义横向分割的重叠值
-    int horizontal_overlap[4] = {213, 213, 214, 0};
-    // 定义纵向的重叠值
-    int vertical_overlap = 200;  // 纵向重叠 200 像素
+      std::cerr << "Small target identification enabled"<< std::endl;
+      int horizontal_overlap[4] = {213, 213, 214, 0};
+      // 定义纵向的重叠值
+      int vertical_overlap = 200;  // 纵向重叠 200 像素
 
-    std::vector<cv::Mat> split_images;
-    cv::Mat pos_start;
-    split_image(img, horizontal_overlap, vertical_overlap, split_images, pos_start);
+      std::vector<cv::Mat> split_images;
+      cv::Mat pos_start;
+      split_image(img, horizontal_overlap, vertical_overlap, split_images, pos_start);
 
-    std::vector<std::vector<Detection>> split_results;
+      std::vector<std::vector<Detection>> split_results;
 
-    for (size_t i = 0; i < split_images.size(); ++i) {
-        cv::Mat imgi = split_images[i];
+      for (size_t i = 0; i < split_images.size(); ++i) {
+          cv::Mat imgi = split_images[i];
 
-        std::vector<cv::Mat> img_batch;
-        img_batch.push_back(imgi);
-        cuda_batch_preprocess(img_batch, gpu_buffers[0], kInputW, kInputH, stream);
+          std::vector<cv::Mat> img_batch;
+          img_batch.push_back(imgi);
+          cuda_batch_preprocess(img_batch, gpu_buffers[0], kInputW, kInputH, stream);
 
-        infer(*context, stream, (void**)gpu_buffers, cpu_output_buffer, kBatchSize);
+          infer(*context, stream, (void**)gpu_buffers, cpu_output_buffer, kBatchSize);
 
-        std::vector<std::vector<Detection>> res_batch;
-        batch_nms(res_batch, cpu_output_buffer, img_batch.size(), kOutputSize, kConfThresh, kNmsThresh);
-        split_results.push_back(res_batch[0]);
-    }
+          std::vector<std::vector<Detection>> res_batch;
+          batch_nms(res_batch, cpu_output_buffer, img_batch.size(), kOutputSize, kConfThresh, kNmsThresh);
+          split_results.push_back(res_batch[0]);
+      }
 
-    std::vector<Detection> all_detections;
-    merge_results(all_detections, split_results, pos_start);
+      std::vector<Detection> all_detections;
+      merge_results(all_detections, split_results, pos_start);
 
-    std::vector<Detection> res; // 保存 NMS 后的结果
-    // float conf_thresh = 0.5f;
-    // float nms_thresh = 0.45f;
-    call_nms_from_detections(all_detections, kConfThresh, kNmsThresh, res);
-    
-//     //Preprocess
-//     cuda_batch_preprocess(img_batch, gpu_buffers[0], kInputW, kInputH, stream);
+      // std::vector<Detection> res; // 保存 NMS 后的结果
+      call_nms_from_detections(all_detections, kConfThresh, kNmsThresh, res1);
+      res = res1;
+    } 
 
-//     // Run inference
-    
-// //  std::cout<<"ready run"<<std::endl;
-//     infer(*context, stream, (void**)gpu_buffers, cpu_output_buffer, kBatchSize);
-    
-//     // NMS
-//     std::vector<std::vector<Detection>> res_batch;
-//     batch_nms(res_batch, cpu_output_buffer, img_batch.size(), kOutputSize, kConfThresh, kNmsThresh);
     //draw fuzhuxian
     // std::cout<<img.size().width<<","<<img.size().height<<std::endl;
     double real_image_center_x = img.size().width/2;

@@ -159,193 +159,91 @@ int main(int argc, char** argv) {
 
     // Load input image
     // std::string input_image_path = "/home/nvidia/record/extracted_images/split_image_1734536070.29.jpg";
-    std::string input_image_path = "/home/nvidia/record/extracted_images/frame0071.jpg";
+    std::string input_image_path = "/home/nvidia/record/extracted_images/frame0036.jpg";
     cv::Mat img = cv::imread(input_image_path);
     if (img.empty()) {
         std::cerr << "Error: Unable to load image: " << input_image_path << std::endl;
         return -1;
     }
 
-    // 定义横向分割的重叠值
-    int horizontal_overlap[4] = {213, 213, 214, 0};
-    // 定义纵向的重叠值
-    int vertical_overlap = 200;  // 纵向重叠 200 像素
+    std::vector<cv::Mat> img_batch;
+    img_batch.push_back(img);
 
-    std::vector<cv::Mat> split_images;
-    cv::Mat pos_start;
-    split_image(img, horizontal_overlap, vertical_overlap, split_images, pos_start);
+    //Preprocess
+    cuda_batch_preprocess(img_batch, gpu_buffers[0], kInputW, kInputH, stream);
 
-    std::vector<std::vector<Detection>> split_results;
-    // for (size_t i = 0; i < split_images.size(); ++i) {
-    //     cv::Mat imgi = split_images[i];
-
-    //     // 创建 img_batch
-    //     std::vector<cv::Mat> img_batch;
-    //     img_batch.push_back(imgi);
-
-    //     // 执行预处理
-    //     cuda_batch_preprocess(img_batch, gpu_buffers[0], kInputW, kInputH, stream);
-
-    //     // 推理操作
-    //     infer(*context, stream, (void**)gpu_buffers, cpu_output_buffer, kBatchSize);
-
-    //     // 跳过 batch_nms
-    //     std::vector<Detection> raw_detections;
-    //     int output_elements = img_batch.size() * kOutputSize;
-    //     for (int j = 0; j < output_elements / (sizeof(Detection) / sizeof(float)); ++j) {
-    //         Detection det;
-    //         std::memcpy(&det, &cpu_output_buffer[j * sizeof(Detection) / sizeof(float)], sizeof(Detection));
-    //         raw_detections.push_back(det);
-    //     }
-
-    //     // 将原始检测结果直接存储到 split_results
-    //     split_results.push_back(raw_detections);
-    // }
-
-
+    // Run inference
     
-    for (size_t i = 0; i < split_images.size(); ++i) {
-        cv::Mat imgi = split_images[i];
+    //  std::cout<<"ready run"<<std::endl;
+    infer(*context, stream, (void**)gpu_buffers, cpu_output_buffer, kBatchSize);
+    
+    // NMS
+    std::vector<std::vector<Detection>> res_batch;
+    batch_nms(res_batch, cpu_output_buffer, img_batch.size(), kOutputSize, kConfThresh, kNmsThresh);
+    //draw fuzhuxian
+    // std::cout<<img.size().width<<","<<img.size().height<<std::endl;
+    double real_image_center_x = img.size().width/2;
+    double real_image_center_y = img.size().height/2;
+    
+    // Draw bounding boxes
+    auto& res = res_batch[0];
 
-        std::vector<cv::Mat> img_batch;
-        img_batch.push_back(imgi);
-        cuda_batch_preprocess(img_batch, gpu_buffers[0], kInputW, kInputH, stream);
+    std::cerr << "Big target size:"<<res.size()<< std::endl;
 
-        infer(*context, stream, (void**)gpu_buffers, cpu_output_buffer, kBatchSize);
+    std::vector<Detection> res1; // 保存 NMS 后的结果
+    if (res.empty()) {
+    // if (1) {
+    // 小目标识别
+    // 定义横向分割的重叠值
+      std::cerr << "Small target identification enabled"<< std::endl;
+      int horizontal_overlap[4] = {213, 213, 214, 0};
+      // 定义纵向的重叠值
+      int vertical_overlap = 200;  // 纵向重叠 200 像素
 
-        std::vector<std::vector<Detection>> res_batch;
-        batch_nms(res_batch, cpu_output_buffer, img_batch.size(), kOutputSize, kConfThresh, kNmsThresh);
-        split_results.push_back(res_batch[0]);
-    }
+      std::vector<cv::Mat> split_images;
+      cv::Mat pos_start;
+      split_image(img, horizontal_overlap, vertical_overlap, split_images, pos_start);
 
-    // // 遍历 split_results，输出每个目标的位置信息和大小
-    // for (size_t i = 0; i < split_results.size(); ++i) {
-    //     const auto& detections = split_results[i];
-    //     std::cout << "Split image " << i << " detections:" << std::endl;
+      std::vector<std::vector<Detection>> split_results;
 
-    //     for (const auto& detection : detections) {
-    //         // 假设 Detection 结构包含 bbox 和 conf
-    //         const float* bbox = detection.bbox;  // bbox 应为 [x, y, w, h] 格式
-    //         float x = bbox[0];
-    //         float y = bbox[1];
-    //         float w = bbox[2];
-    //         float h = bbox[3];
-    //         float conf = detection.conf;
+      for (size_t i = 0; i < split_images.size(); ++i) {
+          cv::Mat imgi = split_images[i];
 
-    //         // 输出目标的位置信息和大小
-    //         std::cout << "  Target: [x=" << x << ", y=" << y 
-    //                 << ", width=" << w << ", height=" << h 
-    //                 << ", confidence=" << conf << "]" << std::endl;
-    //     }
+          std::vector<cv::Mat> img_batch;
+          img_batch.push_back(imgi);
+          cuda_batch_preprocess(img_batch, gpu_buffers[0], kInputW, kInputH, stream);
+
+          infer(*context, stream, (void**)gpu_buffers, cpu_output_buffer, kBatchSize);
+
+          std::vector<std::vector<Detection>> res_batch;
+          batch_nms(res_batch, cpu_output_buffer, img_batch.size(), kOutputSize, kConfThresh, kNmsThresh);
+          split_results.push_back(res_batch[0]);
+      }
+
+      std::vector<Detection> all_detections;
+      merge_results(all_detections, split_results, pos_start);
+
+    //   std::vector<Detection> res1; // 保存 NMS 后的结果
+      call_nms_from_detections(all_detections, kConfThresh, kNmsThresh, res1);
+      res = res1;
+    } 
+    // else {
+    // // 向量不为空
+    //   return;
     // }
 
-
-
-    std::vector<Detection> all_detections;
-    merge_results(all_detections, split_results, pos_start);
-
-    // // 遍历 all_detections，输出每个目标的位置信息和大小
-    // std::cout << "All detections:" << std::endl;
-    // for (size_t i = 0; i < all_detections.size(); ++i) {
-    //     const auto& detection = all_detections[i];
-        
-    //     // 假设 Detection 结构包含 bbox 和 conf
-    //     const float* bbox = detection.bbox;  // bbox 应为 [x, y, w, h] 格式
-    //     float x = bbox[0];
-    //     float y = bbox[1];
-    //     float w = bbox[2];
-    //     float h = bbox[3];
-    //     float conf = detection.conf;
-
-    //     // 输出目标的位置信息和大小
-    //     std::cout << "Target " << i + 1 << ": [x=" << x << ", y=" << y 
-    //             << ", width=" << w << ", height=" << h 
-    //             << ", confidence=" << conf << "]" << std::endl;
-    // }
-
-    std::vector<Detection> res; // 保存 NMS 后的结果
-    float conf_thresh = 0.5f;
-    float nms_thresh = 0.45f;
-    call_nms_from_detections(all_detections, conf_thresh, nms_thresh, res);
     // 输出结果
     for (const auto& det : res) {
         std::cout << "Class: " << det.class_id << ", Conf: " << det.conf << ", BBox: ["
                 << det.bbox[0] << ", " << det.bbox[1] << ", "
                 << det.bbox[2] << ", " << det.bbox[3] << "]\n";
     }
-    // std::vector<Detection> nms_results;
-    // batch_nms(nms_results, all_detections.data(), all_detections.size(), kOutputSize, kConfThresh, kNmsThresh);
 
-    // // 遍历 nms_results，输出每个目标的位置信息和大小
-    // std::cout << "After NMS, all detections:" << std::endl;
-    // for (size_t i = 0; i < nms_results.size(); ++i) {
-    //     const auto& detection = nms_results[i];
-    //     const float* bbox = detection.bbox;
-    //     float x = bbox[0];
-    //     float y = bbox[1];
-    //     float w = bbox[2];
-    //     float h = bbox[3];
-    //     float conf = detection.conf;
-
-    //     std::cout << "Target " << i + 1 << ": [x=" << x << ", y=" << y 
-    //             << ", width=" << w << ", height=" << h 
-    //             << ", confidence=" << conf << "]" << std::endl;
+    // for (const auto& det1 : res1) {
+    //     std::cout << "Class: " << det1.class_id << ", Conf: " << det1.conf << ", BBox: ["
+    //             << det1.bbox[0] << ", " << det1.bbox[1] << ", "
+    //             << det1.bbox[2] << ", " << det1.bbox[3] << "]\n";
     // }
-
-    
-
-    // for (size_t j = 0; j < all_detections.size(); j++) {
-    //     cv::Rect r = get_rect(img, all_detections[j].bbox);
-    //     cv::rectangle(img, r, cv::Scalar(0x27, 0xC1, 0x36), 2);
-    //     cv::putText(img, "Target: " + std::to_string(all_detections[j].conf), cv::Point(r.x, r.y - 1), 
-    //                 cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
-    // }
-
-
-    // cv::imshow("Final Result", img);
-    // cv::waitKey(0);
-
-    // // 显示分割后的图像
-    // for (size_t i = 0; i < split_images.size(); ++i) {
-    //     cv::Mat imgi = split_images[i];
-    //     //////////////////////////////////////////////////////////////
-    //     // Preprocess image
-    //     std::vector<cv::Mat> img_batch;
-    //     img_batch.clear();
-
-    //     img_batch.push_back(imgi);  // 使用当前分割图像
-    //     cuda_batch_preprocess(img_batch, gpu_buffers[0], kInputW, kInputH, stream);
-
-    //     // Run inference
-    //     infer(*context, stream, (void**)gpu_buffers, cpu_output_buffer, kBatchSize);
-
-    //     // NMS
-    //     std::vector<std::vector<Detection>> res_batch;
-    //     batch_nms(res_batch, cpu_output_buffer, img_batch.size(), kOutputSize, kConfThresh, kNmsThresh);
-
-    //     // Draw bounding boxes
-    //     auto& res = res_batch[0];
-        
-    //     for (size_t j = 0; j < res.size(); j++) {
-    //         // 获取目标框
-    //         cv::Rect r = get_rect(imgi, res[j].bbox);
-    //         std::cout<<j<<":"<<res[j].conf<<std::endl;
-    //         // 在分割图像上绘制矩形框
-    //         cv::rectangle(imgi, r, cv::Scalar(0x27, 0xC1, 0x36), 2);
-    //         cv::putText(imgi, "Target: " + std::to_string(res[j].conf), cv::Point(r.x, r.y - 1), 
-    //                     cv::FONT_HERSHEY_PLAIN, 1.2, cv::Scalar(0xFF, 0xFF, 0xFF), 2);
-    //     }
-    //     //////////////////////////////////////////////////////////////
-        
-    //     // 显示每个分割后的图像
-    //     std::string window_name = "Split Image " + std::to_string(i);
-    //     cv::imshow(window_name, imgi);
-    //     std::cout << "Displaying: " << window_name << std::endl;
-    // }
-
-    // // 等待用户按键
-    // cv::waitKey(0);
-
 
     // Cleanup
     CUDA_CHECK(cudaFree(gpu_buffers[0]));
@@ -358,3 +256,106 @@ int main(int argc, char** argv) {
 
     return 0;
 }
+
+
+    // // 定义横向分割的重叠值
+    // int horizontal_overlap[4] = {213, 213, 214, 0};
+    // // 定义纵向的重叠值
+    // int vertical_overlap = 200;  // 纵向重叠 200 像素
+
+    // std::vector<cv::Mat> split_images;
+    // cv::Mat pos_start;
+    // split_image(img, horizontal_overlap, vertical_overlap, split_images, pos_start);
+
+    // std::vector<std::vector<Detection>> split_results;
+    // // for (size_t i = 0; i < split_images.size(); ++i) {
+    // //     cv::Mat imgi = split_images[i];
+
+    // //     // 创建 img_batch
+    // //     std::vector<cv::Mat> img_batch;
+    // //     img_batch.push_back(imgi);
+
+    // //     // 执行预处理
+    // //     cuda_batch_preprocess(img_batch, gpu_buffers[0], kInputW, kInputH, stream);
+
+    // //     // 推理操作
+    // //     infer(*context, stream, (void**)gpu_buffers, cpu_output_buffer, kBatchSize);
+
+    // //     // 跳过 batch_nms
+    // //     std::vector<Detection> raw_detections;
+    // //     int output_elements = img_batch.size() * kOutputSize;
+    // //     for (int j = 0; j < output_elements / (sizeof(Detection) / sizeof(float)); ++j) {
+    // //         Detection det;
+    // //         std::memcpy(&det, &cpu_output_buffer[j * sizeof(Detection) / sizeof(float)], sizeof(Detection));
+    // //         raw_detections.push_back(det);
+    // //     }
+
+    // //     // 将原始检测结果直接存储到 split_results
+    // //     split_results.push_back(raw_detections);
+    // // }
+
+
+    
+    // for (size_t i = 0; i < split_images.size(); ++i) {
+    //     cv::Mat imgi = split_images[i];
+
+    //     std::vector<cv::Mat> img_batch;
+    //     img_batch.push_back(imgi);
+    //     cuda_batch_preprocess(img_batch, gpu_buffers[0], kInputW, kInputH, stream);
+
+    //     infer(*context, stream, (void**)gpu_buffers, cpu_output_buffer, kBatchSize);
+
+    //     std::vector<std::vector<Detection>> res_batch;
+    //     batch_nms(res_batch, cpu_output_buffer, img_batch.size(), kOutputSize, kConfThresh, kNmsThresh);
+    //     split_results.push_back(res_batch[0]);
+    // }
+
+    // // // 遍历 split_results，输出每个目标的位置信息和大小
+    // // for (size_t i = 0; i < split_results.size(); ++i) {
+    // //     const auto& detections = split_results[i];
+    // //     std::cout << "Split image " << i << " detections:" << std::endl;
+
+    // //     for (const auto& detection : detections) {
+    // //         // 假设 Detection 结构包含 bbox 和 conf
+    // //         const float* bbox = detection.bbox;  // bbox 应为 [x, y, w, h] 格式
+    // //         float x = bbox[0];
+    // //         float y = bbox[1];
+    // //         float w = bbox[2];
+    // //         float h = bbox[3];
+    // //         float conf = detection.conf;
+
+    // //         // 输出目标的位置信息和大小
+    // //         std::cout << "  Target: [x=" << x << ", y=" << y 
+    // //                 << ", width=" << w << ", height=" << h 
+    // //                 << ", confidence=" << conf << "]" << std::endl;
+    // //     }
+    // // }
+
+
+
+    // std::vector<Detection> all_detections;
+    // merge_results(all_detections, split_results, pos_start);
+
+    // // // 遍历 all_detections，输出每个目标的位置信息和大小
+    // // std::cout << "All detections:" << std::endl;
+    // // for (size_t i = 0; i < all_detections.size(); ++i) {
+    // //     const auto& detection = all_detections[i];
+        
+    // //     // 假设 Detection 结构包含 bbox 和 conf
+    // //     const float* bbox = detection.bbox;  // bbox 应为 [x, y, w, h] 格式
+    // //     float x = bbox[0];
+    // //     float y = bbox[1];
+    // //     float w = bbox[2];
+    // //     float h = bbox[3];
+    // //     float conf = detection.conf;
+
+    // //     // 输出目标的位置信息和大小
+    // //     std::cout << "Target " << i + 1 << ": [x=" << x << ", y=" << y 
+    // //             << ", width=" << w << ", height=" << h 
+    // //             << ", confidence=" << conf << "]" << std::endl;
+    // // }
+
+    // std::vector<Detection> res; // 保存 NMS 后的结果
+    // float conf_thresh = 0.5f;
+    // float nms_thresh = 0.45f;
+    // call_nms_from_detections(all_detections, conf_thresh, nms_thresh, res);
