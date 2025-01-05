@@ -191,10 +191,10 @@ private:
                 double velocity_error = sqrt(dvx * dvx + dvy * dvy + dvz * dvz);
 
                 // Calculate the combined error: x-y distance error + 5 times velocity error
-                double combined_error = position_error + 3 * velocity_error;
+                double combined_error = position_error + 4 * velocity_error;
 
                 // If this is the smallest combined error so far, track it
-                if (combined_error < min_combined_error && combined_error < 25) {
+                if (combined_error < min_combined_error && combined_error < 25 && position_error < 10) {
                     min_combined_error = combined_error;
                     matching_point_index = i;  // Store the index of the best matching point
                 }
