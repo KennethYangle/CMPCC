@@ -1,0 +1,1 @@
+rosbag play _2024-06-18-04-39-28_0.bag --topics /drone_2/mavros/local_position/pose /drone_2/balloons/masspoint /mavros/global_position/global /mavros/local_position/pose /mavros/local_position/velocity_local /mavros/rc/in /mavros/state /mavros/home_position/home -s 20

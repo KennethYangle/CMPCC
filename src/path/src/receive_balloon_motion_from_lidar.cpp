@@ -31,6 +31,7 @@ public:
         initial_z_offset_ = 0.0;
         is_matching_ = false;
         last_matching_offset_.x = last_matching_offset_.y = last_matching_offset_.z = 0.0;
+        mav_state_mode = "UNKNOWN";
 
         // 从ROS参数服务器加载参数
         nh.param("matching_horizontal_th", matching_horizontal_th_, 0.5);
@@ -86,6 +87,7 @@ private:
     geometry_msgs::Point mav_pos_;
     geometry_msgs::Point mav_vel_;
     geometry_msgs::Point last_matching_offset_;  // 上一次匹配的偏移量
+    std::string mav_state_mode;
 
     visualization_msgs::Marker marker;
 
@@ -103,6 +105,7 @@ private:
 
     // Callback to receive UAV state
     void stateCallback(const mavros_msgs::State::ConstPtr& msg) {
+        mav_state_mode = msg->mode;
         // Check if the drone is unlocked
         if (!msg->armed && msg->connected) {
             initial_z_offset_ = trans_lidar_mav_.pose.position.z - mav_pos_.z;
@@ -170,11 +173,11 @@ private:
             transformed_point.position.z = transformed_position.z();
 
             // 如果不进行匹配，则清除与无人机10米范围内的点
-            if (!is_matching_) {
+            if (!is_matching_ || mav_state_mode == "OFFBOARD") {
                 double dx = transformed_point.position.x - mav_pos_.x;
                 double dy = transformed_point.position.y - mav_pos_.y;
 
-                if (sqrt(dx * dx + dy * dy) <= 10.0) {
+                if (sqrt(dx * dx + dy * dy) <= 5.0) {
                     // 距离无人机10米以内的点，直接跳过
                     continue;
                 }
@@ -212,7 +215,7 @@ private:
         }
 
         // After processing all points, check if there was a match
-        if (is_matching_ && matching_point_index >= 0) {
+        if (is_matching_ && matching_point_index >= 0 && mav_state_mode != "OFFBOARD") {
             // Update the last matching offset with the position of the matched point
             swarm_msgs::MassPoint matched_point = transformed_masspoints.points[matching_point_index];
             last_matching_offset_.x += matched_point.position.x - mav_pos_.x;

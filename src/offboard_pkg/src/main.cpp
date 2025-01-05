@@ -47,7 +47,7 @@ void local_vel_cb(const geometry_msgs::TwistStamped::ConstPtr& msg){
 }
 void mpcc_cmd_cb(const quadrotor_msgs::PositionCommand::ConstPtr& msg){
     mpcc_cmd = *msg;
-    mpcc_cmd.yaw_dot = utils.yaw_control(mpcc_cmd.yaw, mav_yaw, 1.5, 1.0);
+    mpcc_cmd.yaw_dot = utils.yaw_control(mpcc_cmd.yaw, mav_yaw, 1.5, 1.2);
 }
 void attack_cmd_cb(const quadrotor_msgs::PositionCommand::ConstPtr& msg){
     attack_cmd = *msg;
