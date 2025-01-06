@@ -172,12 +172,20 @@ private:
             transformed_point.position.y = transformed_position.y();
             transformed_point.position.z = transformed_position.z();
 
+            // 保持目标的速度不变
+            transformed_point.velocity = point.velocity;
+            // transformed_point.velocity.x = transformed_point.velocity.y = transformed_point.velocity.z = 0.0;
+
+            // 保持目标的体积不变
+            transformed_point.volume = point.volume;
+
+
             // 如果不进行匹配，则清除与无人机10米范围内的点
             if (!is_matching_ || mav_state_mode == "OFFBOARD") {
                 double dx = transformed_point.position.x - mav_pos_.x;
                 double dy = transformed_point.position.y - mav_pos_.y;
 
-                if (sqrt(dx * dx + dy * dy) <= 5.0) {
+                if (sqrt(dx * dx + dy * dy) <= 8.0) {
                     // 距离无人机10米以内的点，直接跳过
                     continue;
                 }
@@ -202,13 +210,6 @@ private:
                     matching_point_index = i;  // Store the index of the best matching point
                 }
             }
-
-            // 保持目标的速度不变
-            transformed_point.velocity = point.velocity;
-            // transformed_point.velocity.x = transformed_point.velocity.y = transformed_point.velocity.z = 0.0;
-
-            // 保持目标的体积不变
-            transformed_point.volume = point.volume;
 
             // 将转换后的目标点添加到结果中
             transformed_masspoints.points.push_back(transformed_point);

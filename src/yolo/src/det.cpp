@@ -1,5 +1,5 @@
 /*
- * Bian,liu 2024.12.23
+ * Bian 2023.08.17
  * target det with yolo v5 7.0, engine must be generated with yolov5s.pt
  * param: KNum=2
  *        Pixel of resized image: (640,640)
@@ -108,76 +108,6 @@ cv::Mat rotateImage(cv::Mat& src_img, int degree) {
     }
 }
 
-void split_image(const cv::Mat& img, int horizontal_overlap[4], int vertical_overlap, std::vector<cv::Mat>& split_images, cv::Mat& pos_start) {
-    // 图像的宽度和高度
-    int img_width = img.cols;
-    int img_height = img.rows;
-
-    // 横向分割：根据给定的重叠信息计算每个区域的宽度和位置
-    int horizontal_splits = 640;
-
-    // 根据重叠的要求调整每个分割的起始位置
-    int x_start[4];
-    x_start[0] = 0;
-    x_start[1] = horizontal_splits - horizontal_overlap[0];  // 重叠 213 像素
-    x_start[2] = x_start[1] + horizontal_splits - horizontal_overlap[1]; // 重叠 213 像素
-    x_start[3] = x_start[2] + horizontal_splits - horizontal_overlap[2]; // 重叠 214 像素
-
-    int height = 640;
-
-    // 纵向分割：每个分割区域的高度
-    int y_start[2];
-    y_start[0] = 0;
-    y_start[1] = height - vertical_overlap;  // 第二部分的起始位置
-
-    // 初始化 pos_start 矩阵，存储每个分割的起始坐标
-    pos_start = cv::Mat_<cv::Vec2i>(2, 4);  // 2行4列的矩阵，每个元素是一个 Vec2i
-
-    // 进行分割操作
-    for (int i = 0; i < 2; ++i) {
-        for (int j = 0; j < 4; ++j) {
-            // 存储每个分割区域的左上角坐标 (x_start[j], y_start[i])
-            pos_start.at<cv::Vec2i>(i, j) = cv::Vec2i(x_start[j], y_start[i]);  // 存储 (x, y) 坐标
-
-            // 计算每个分割区域的矩形框
-            cv::Rect roi(x_start[j], y_start[i], horizontal_splits, height);
-            cv::Mat cropped_img = img(roi).clone();  // 从原始图像中截取出对应区域
-            split_images.push_back(cropped_img);  // 存储分割的图像
-        }
-    }
-}
-
-void merge_results(std::vector<Detection>& all_detections, const std::vector<std::vector<Detection>>& split_results, const cv::Mat& pos_start) {
-    for (int i = 0; i < split_results.size(); ++i) {
-        int split_idx = i / 4;
-        int x_offset = pos_start.at<cv::Vec2i>(split_idx, i % 4)[0];
-        int y_offset = pos_start.at<cv::Vec2i>(split_idx, i % 4)[1];
-
-        for (const auto& det : split_results[i]) {
-            Detection merged_det = det;
-            merged_det.bbox[0] += x_offset;
-            merged_det.bbox[1] += y_offset;
-            all_detections.push_back(merged_det);
-        }
-    }
-}
-
-void call_nms_from_detections(const std::vector<Detection>& all_detections, float conf_thresh, float nms_thresh, std::vector<Detection>& res) {
-    int det_size = sizeof(Detection) / sizeof(float); // 每个Detection的float数目
-
-    // 将 all_detections 转换为连续的 float 数组
-    std::vector<float> output(1 + all_detections.size() * det_size); // 包括第一位的检测数量
-    output[0] = static_cast<float>(all_detections.size());
-    
-    for (size_t i = 0; i < all_detections.size(); ++i) {
-        const Detection& det = all_detections[i];
-        std::memcpy(&output[1 + i * det_size], &det, det_size * sizeof(float));
-    }
-
-    // 调用 nms 函数
-    nms(res, output.data(), conf_thresh, nms_thresh);
-}
-
 void imageCallback(const sensor_msgs::ImageConstPtr& msg)
 {
  num ++;
@@ -190,13 +120,13 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
     cv::Mat img = cv_ptr->image;
     // img = rotateImage(img , 180);
     img_batch.push_back(img);
-
+    
     //Preprocess
     cuda_batch_preprocess(img_batch, gpu_buffers[0], kInputW, kInputH, stream);
 
     // Run inference
     
-    //  std::cout<<"ready run"<<std::endl;
+//  std::cout<<"ready run"<<std::endl;
     infer(*context, stream, (void**)gpu_buffers, cpu_output_buffer, kBatchSize);
     
     // NMS
@@ -204,56 +134,11 @@ void imageCallback(const sensor_msgs::ImageConstPtr& msg)
     batch_nms(res_batch, cpu_output_buffer, img_batch.size(), kOutputSize, kConfThresh, kNmsThresh);
     //draw fuzhuxian
     // std::cout<<img.size().width<<","<<img.size().height<<std::endl;
-    // double real_image_center_x = img.size().width/2;
-    // double real_image_center_y = img.size().height/2;
-    
-    // Draw bounding boxes
-    auto& res = res_batch[0];
-
-    std::vector<Detection> res1; 
-    if (res.empty()) {
-    // 小目标识别
-    // 定义横向分割的重叠值
-      std::cerr << "Small target identification enabled"<< std::endl;
-      int horizontal_overlap[4] = {213, 213, 214, 0};
-      // 定义纵向的重叠值
-      int vertical_overlap = 200;  // 纵向重叠 200 像素
-
-      std::vector<cv::Mat> split_images;
-      cv::Mat pos_start;
-      split_image(img, horizontal_overlap, vertical_overlap, split_images, pos_start);
-
-      std::vector<std::vector<Detection>> split_results;
-
-      for (size_t i = 0; i < split_images.size(); ++i) {
-          cv::Mat imgi = split_images[i];
-
-          std::vector<cv::Mat> img_batch;
-          img_batch.push_back(imgi);
-          cuda_batch_preprocess(img_batch, gpu_buffers[0], kInputW, kInputH, stream);
-
-          infer(*context, stream, (void**)gpu_buffers, cpu_output_buffer, kBatchSize);
-
-          std::vector<std::vector<Detection>> res_batch;
-          batch_nms(res_batch, cpu_output_buffer, img_batch.size(), kOutputSize, kConfThresh, kNmsThresh);
-          split_results.push_back(res_batch[0]);
-      }
-
-      std::vector<Detection> all_detections;
-      merge_results(all_detections, split_results, pos_start);
-
-      // std::vector<Detection> res; // 保存 NMS 后的结果
-      call_nms_from_detections(all_detections, kConfThresh, kNmsThresh, res1);
-      res = res1;
-    } 
-
-    //draw fuzhuxian
-    // std::cout<<img.size().width<<","<<img.size().height<<std::endl;
     double real_image_center_x = img.size().width/2;
     double real_image_center_y = img.size().height/2;
     
     // Draw bounding boxes
-    // auto& res = res_batch[0];
+    auto& res = res_batch[0];
     swarm_msgs::BoundingBoxes circle_boxes;
     for (size_t j = 0; j < res.size(); j++) {
       cv::Rect r = get_rect(img, res[j].bbox);

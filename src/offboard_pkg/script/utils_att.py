@@ -196,7 +196,7 @@ class Utils(object):
         v_d = v_1 + v_2
         v_d /= np.linalg.norm(v_d)
         V = np.linalg.norm(pos_info["mav_vel"])
-        v_d *= V + 0.6
+        v_d *= V + 0.8
         v_d[2] = self.SaftyZ(v_d[2], 1.)
         # v_d *= V + 2.0
 

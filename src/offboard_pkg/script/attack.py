@@ -82,9 +82,9 @@ def pos_image_cb(msg):
             command.weight = 0.
     
 def calc_weight(w, w_max):
-    if w > 0.10 * w_max:
+    if w > 50:
         return 1.
-    return w / 0.10 / w_max
+    return w / 50.
 
 
 if __name__=="__main__":
