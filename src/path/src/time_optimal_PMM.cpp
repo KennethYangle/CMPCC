@@ -218,22 +218,184 @@ std::tuple<Vector3, Vector3, double, Vector3> TimeOptimalPMM3D::compute_times() 
     return std::make_tuple(t1_vec, t2_vec, T, case_idx_vec);
 }
 
+#include "time_optimal_PMM.h" // Make sure this header includes <cmath>, <tuple>, <vector>, <limits>, <algorithm>, and matplotlibcpp.h
+#include <iostream>
+
+void TimeOptimalPMM3D::plot_combined_trajectory() {
+    // --- 1. Calculate Trajectories (Similar to plot_trajectory, but storing data) ---
+
+    std::vector<double> t_all_x, x_all_x, v_all_x, u_all_x;
+    std::vector<double> t_all_y, x_all_y, v_all_y, u_all_y;
+    std::vector<double> t_all_z, x_all_z, v_all_z, u_all_z;
+
+    // Helper function to generate trajectory data for a single axis
+    auto generate_axis_data = [&](TimeOptimalPMM& pmm, std::vector<double>& t_all, std::vector<double>& x_all,
+                                  std::vector<double>& v_all, std::vector<double>& u_all) {
+        double v_line = (pmm.xT - pmm.x0) / pmm.T_;
+        double x = pmm.x0;
+        double v = pmm.v0;
+        double u = 0;
+        t_all.clear(); x_all.clear(); v_all.clear(); u_all.clear(); // Clear vectors
+
+        if (pmm.case_idx_ == 2) {
+            for (int i = 0; i < num_points; ++i) {
+                double t = pmm.T_ * i / (num_points - 1);
+                t_all.push_back(t);
+                x_all.push_back(pmm.x0 + t * v_line);
+                v_all.push_back(v_line);
+                u_all.push_back(0);
+            }
+        } else {
+            // Phase 1
+            for (int i = 0; i < num_points; ++i) {
+                double t = pmm.t1_ * i / (num_points - 1);
+                t_all.push_back(t);
+                u_all.push_back(pmm.case_idx_ == 0 ? pmm.umax : -pmm.umin);
+            }
+            // Phase 2
+            for (int i = 0; i < num_points; ++i) {
+                double t = pmm.t1_ + (pmm.t2_ - pmm.t1_) * i / (num_points - 1);
+                t_all.push_back(t);
+                u_all.push_back(0);
+            }
+
+            // Phase 3
+             for (int i = 0; i < num_points; ++i) {
+                double t = pmm.t2_ + (pmm.T_ - pmm.t2_) * i / (num_points - 1);
+                t_all.push_back(t);
+                u_all.push_back(pmm.case_idx_ == 0 ? -pmm.umin : pmm.umax);
+            }
+
+
+            x_all.push_back(pmm.x0);
+            v_all.push_back(pmm.v0);
+            for (int i = 1; i < t_all.size(); ++i) {
+                double dt = t_all[i] - t_all[i - 1];
+                v = v_all[i - 1] + u_all[i - 1] * dt;
+                x = x_all[i - 1] + v_all[i-1] * dt + 0.5 * u_all[i-1] * dt*dt;
+                v_all.push_back(v);
+                x_all.push_back(x);
+            }
+        }
+    };
+
+    // Generate data for each axis
+    generate_axis_data(pmm_x, t_all_x, x_all_x, v_all_x, u_all_x);
+    generate_axis_data(pmm_y, t_all_y, x_all_y, v_all_y, u_all_y);
+    generate_axis_data(pmm_z, t_all_z, x_all_z, v_all_z, u_all_z);
+
+
+    // --- 2. Create 3x3 Subplot ---
+
+    plt::figure_size(1200, 800); // Adjust as needed
+
+    // --- X-Axis Plots ---
+    plt::subplot(3, 3, 1);
+    plt::plot(t_all_x, x_all_x);
+    plt::ylabel("p (m)");
+
+    plt::subplot(3, 3, 4);
+    plt::plot(t_all_x, v_all_x);
+    plt::ylabel("v (m/s)");
+    plt::axhline(pmm_x.vmax, 0.0, 1.0, {{"color", "black"}, {"linestyle", "--"}});
+    plt::axhline(-pmm_x.vmin, 0.0, 1.0, {{"color", "red"}, {"linestyle", "--"}});
+    // Add fill_between for velocity bounds (X-axis)
+    plt::fill_between(t_all_x, std::vector<double>(t_all_x.size(), pmm_x.vmax), std::vector<double>(t_all_x.size(), 1.5*pmm_x.vmax), {{"alpha", "0.2"}, {"color", "peachpuff"}});
+    plt::fill_between(t_all_x, std::vector<double>(t_all_x.size(), -pmm_x.vmin), std::vector<double>(t_all_x.size(), -1.5*pmm_x.vmin), {{"alpha", "0.2"}, {"color", "lightsteelblue"}});
+
+
+    plt::subplot(3, 3, 7);
+    plt::plot(t_all_x, u_all_x);
+    plt::ylabel("u (m/s$^2$)");
+    plt::xlabel("t (s)");
+    plt::axhline(pmm_x.umax, 0.0, 1.0, {{"color", "black"}, {"linestyle", "--"}});
+    plt::axhline(-pmm_x.umin, 0.0, 1.0, {{"color", "red"}, {"linestyle", "--"}});
+    // Add fill_between for acceleration bounds (X-axis)
+    plt::fill_between(t_all_x, std::vector<double>(t_all_x.size(), pmm_x.umax), std::vector<double>(t_all_x.size(), 1.5*pmm_x.umax), {{"alpha", "0.2"}, {"color", "peachpuff"}});
+    plt::fill_between(t_all_x, std::vector<double>(t_all_x.size(), -pmm_x.umin), std::vector<double>(t_all_x.size(), -1.5*pmm_x.umin), {{"alpha", "0.2"}, {"color", "lightsteelblue"}});
+
+
+
+    // --- Y-Axis Plots ---
+    plt::subplot(3, 3, 2);
+    plt::plot(t_all_y, x_all_y);
+    // plt::ylabel("$p_y$ (m)");
+
+    plt::subplot(3, 3, 5);
+    plt::plot(t_all_y, v_all_y);
+    // plt::ylabel("$v_y$ (m/s)");
+    plt::axhline(pmm_y.vmax, 0.0, 1.0, {{"color", "black"}, {"linestyle", "--"}});
+    plt::axhline(-pmm_y.vmin, 0.0, 1.0, {{"color", "red"}, {"linestyle", "--"}});
+    // Add fill_between for velocity bounds (Y-axis)
+    plt::fill_between(t_all_y, std::vector<double>(t_all_y.size(), pmm_y.vmax), std::vector<double>(t_all_y.size(), 1.5*pmm_y.vmax), {{"alpha", "0.2"}, {"color", "peachpuff"}});
+    plt::fill_between(t_all_y, std::vector<double>(t_all_y.size(), -pmm_y.vmin), std::vector<double>(t_all_y.size(), -1.5*pmm_y.vmin), {{"alpha", "0.2"}, {"color", "lightsteelblue"}});
+
+
+
+    plt::subplot(3, 3, 8);
+    plt::plot(t_all_y, u_all_y);
+    // plt::ylabel("$u_y$ (m/s$^2$)");
+    plt::xlabel("t (s)");
+    plt::axhline(pmm_y.umax, 0.0, 1.0, {{"color", "black"}, {"linestyle", "--"}});
+    plt::axhline(-pmm_y.umin, 0.0, 1.0, {{"color", "red"}, {"linestyle", "--"}});
+     // Add fill_between for acceleration bounds (Y-axis)
+    plt::fill_between(t_all_y, std::vector<double>(t_all_y.size(), pmm_y.umax), std::vector<double>(t_all_y.size(), 1.5*pmm_y.umax), {{"alpha", "0.2"}, {"color", "peachpuff"}});
+    plt::fill_between(t_all_y, std::vector<double>(t_all_y.size(), -pmm_y.umin), std::vector<double>(t_all_y.size(), -1.5*pmm_y.umin), {{"alpha", "0.2"}, {"color", "lightsteelblue"}});
+
+
+    // --- Z-Axis Plots ---
+    plt::subplot(3, 3, 3);
+    plt::plot(t_all_z, x_all_z);
+    // plt::ylabel("$p_z$ (m)");
+
+    plt::subplot(3, 3, 6);
+    plt::plot(t_all_z, v_all_z);
+    // plt::ylabel("$v_z$ (m/s)");
+    plt::axhline(pmm_z.vmax, 0.0, 1.0, {{"color", "black"}, {"linestyle", "--"}});
+    plt::axhline(-pmm_z.vmin, 0.0, 1.0, {{"color", "red"}, {"linestyle", "--"}});
+    // Add fill_between for velocity bounds (Z-axis)
+    plt::fill_between(t_all_z, std::vector<double>(t_all_z.size(), pmm_z.vmax), std::vector<double>(t_all_z.size(), 1.5*pmm_z.vmax), {{"alpha", "0.2"}, {"color", "peachpuff"}});
+    plt::fill_between(t_all_z, std::vector<double>(t_all_z.size(), -pmm_z.vmin), std::vector<double>(t_all_z.size(), -1.5*pmm_z.vmin), {{"alpha", "0.2"}, {"color", "lightsteelblue"}});
+
+
+    plt::subplot(3, 3, 9);
+    plt::plot(t_all_z, u_all_z);
+    // plt::ylabel("$u_z$ (m/s$^2$)");
+    plt::xlabel("t (s)");
+    plt::axhline(pmm_z.umax, 0.0, 1.0, {{"color", "black"}, {"linestyle", "--"}});
+    plt::axhline(-pmm_z.umin, 0.0, 1.0, {{"color", "red"}, {"linestyle", "--"}});
+    // Add fill_between for acceleration bounds (Z-axis)
+    plt::fill_between(t_all_z, std::vector<double>(t_all_z.size(), pmm_z.umax), std::vector<double>(t_all_z.size(), 1.5*pmm_z.umax), {{"alpha", "0.2"}, {"color", "peachpuff"}});
+    plt::fill_between(t_all_z, std::vector<double>(t_all_z.size(), -pmm_z.umin), std::vector<double>(t_all_z.size(), -1.5*pmm_z.umin), {{"alpha", "0.2"}, {"color", "lightsteelblue"}});
+
+
+    plt::tight_layout(); // Prevent overlapping labels
+    plt::show();
+}
+
 void TimeOptimalPMM3D::plot_initial_trajectory() {
     // Calculate time for each axis
     auto [t1_x, t2_x, T_x, _x] = pmm_x.compute_times();
     auto [t1_y, t2_y, T_y, _y] = pmm_y.compute_times();
     auto [t1_z, t2_z, T_z, _z] = pmm_z.compute_times();
-    // plot each axis
-    pmm_x.plot_trajectory();
-    pmm_y.plot_trajectory();
-    pmm_z.plot_trajectory();
+
+    // // plot each axis
+    // pmm_x.plot_trajectory();
+    // pmm_y.plot_trajectory();
+    // pmm_z.plot_trajectory();
+
+    // plot 3x3 combined trajectory
+    plot_combined_trajectory();
 }
 
 void TimeOptimalPMM3D::plot_trajectory() {
-    // plot each axis
-    pmm_x.plot_trajectory();
-    pmm_y.plot_trajectory();
-    pmm_z.plot_trajectory();
+    // // plot each axis
+    // pmm_x.plot_trajectory();
+    // pmm_y.plot_trajectory();
+    // pmm_z.plot_trajectory();
+
+    // plot 3x3 combined trajectory
+    plot_combined_trajectory();
 
     // plot 3D trajectory
     std::vector<double> t_all;
