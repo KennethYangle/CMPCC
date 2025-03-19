@@ -45,6 +45,8 @@ public:
                     pmm_y(x0.y, v0.y, xT.y, vT.y, umax.y, umin.y, vmax.y, vmin.y),
                     pmm_z(x0.z, v0.z, xT.z, vT.z, umax.z, umin.z, vmax.z, vmin.z) {}
     std::tuple<Vector3, Vector3, double, Vector3> compute_times();
+    void plot_combined_trajectory();
+    void plot_initial_trajectory();
     void plot_trajectory();
     bool isEqualFloat(double a, double b);
 };
