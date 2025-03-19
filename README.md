@@ -58,13 +58,19 @@ sudo cmake --build . --target install
 
 - install Eigen
 ```
-  cd Eigen
-  mkdir build
-  cd build
-  cmake ..
-  make
-  sudo make install
+cd Eigen
+mkdir build
+cd build
+cmake ..
+make
+sudo make install
 ```
+
+If DDS is not installed, run `install_dds.sh` under home.
+```
+sudo ./install_dds.sh
+```
+
 
 ## 2. Build on ROS
 After the prerequisites are satisfied, you can catkin_make in this repository directory, which is already a ros-workspace:
