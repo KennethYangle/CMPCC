@@ -66,7 +66,8 @@ then
     sleep 1s
 else
     # 载入相机和滤波器参数
-    gnome-terminal --tab -t "Load Camera & Filter Param" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch params load_param_real.launch;exec bash"
+    # gnome-terminal --tab -t "Load Camera & Filter Param" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch params load_param_real.launch;exec bash"
+    gnome-terminal --tab -t "Load Camera & Filter Param" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch params load_param_usb.launch;exec bash"
 
     # mavros
     gnome-terminal --tab -t "Mavros" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch mavros px4.launch fcu_url:="/dev/ttyACM0:57600";exec bash"
@@ -77,7 +78,8 @@ else
     sleep 2s
 
     # 目标检测
-    gnome-terminal -x bash -c "source ${WS_DIR}/devel/setup.bash; roslaunch yolo action4.launch; exec bash"
+    # gnome-terminal -x bash -c "source ${WS_DIR}/devel/setup.bash; roslaunch yolo action4.launch; exec bash"
+    gnome-terminal -x bash -c "source ${WS_DIR}/devel/setup.bash; rosrun yolo usb_cam_driver.py; exec bash"
     sleep 10s
     gnome-terminal -x bash -c "source ${WS_DIR}/devel/setup.bash; roslaunch yolo det_yolo.launch; exec bash"
     sleep 10s
@@ -97,5 +99,5 @@ sleep 3s
 
 
 # 录制bag，保存到/home/nvidia/record/
-gnome-terminal --tab -t "ROSbag Record" -- bash -c "rosbag record --split --size=512 /attack_cmd /camera/image_raw/compressed /mavros/state /mavros/global_position/global /mavros/imu/data /mavros/local_position/pose /mavros/local_position/velocity_local /mavros/rc/in /mavros/setpoint_raw/local /mavros/setpoint_position/local /mavros/setpoint_velocity/cmd_vel /tracker/pos_image  -o /home/nvidia/record/att;exec bash"
+gnome-terminal --tab -t "ROSbag Record" -- bash -c "rosbag record --split --size=512 /attack_cmd /camera/image_raw /mavros/state /mavros/global_position/global /mavros/imu/data /mavros/local_position/pose /mavros/local_position/velocity_local /mavros/rc/in /mavros/setpoint_raw/local /mavros/setpoint_position/local /mavros/setpoint_velocity/cmd_vel /tracker/pos_image  -o /home/nvidia/record/att;exec bash"
 sleep 5s
