@@ -121,24 +121,24 @@ if __name__=="__main__":
         pos_info = {"mav_pos": mav_pos, "mav_vel": mav_vel, "mav_R": mav_R, "R_bc": np.array([[0,0,1], [1,0,0], [0,1,0]]), "mav_yaw": mav_yaw}
         
         if pos_i[0] > 0:
-            cmd = u.RotateAttackAccelerationController2(pos_info, pos_i, controller_reset)
+            cmd = u.RotateAttackAccelerationController2VelCmd(pos_info, pos_i, controller_reset)
             command.header.stamp = rospy.Time.now()
             command.acceleration.x = cmd[0]
             command.acceleration.y = cmd[1]
             command.acceleration.z = cmd[2]
-            command.yaw_dot = cmd[3]
-            command.velocity.x = cmd[4]
-            command.velocity.y = cmd[5]
-            command.velocity.z = cmd[6]
+            command.velocity.x = cmd[3]
+            command.velocity.y = cmd[4]
+            command.velocity.z = cmd[5]
+            command.yaw_dot = cmd[6]
         else:
             command.header.stamp = rospy.Time.now()
             command.acceleration.x = 0
             command.acceleration.y = 0
             command.acceleration.z = 0
-            command.yaw_dot = 0
             command.velocity.x = 0
             command.velocity.y = 0
             command.velocity.z = 0
+            command.yaw_dot = 0
         local_acc_pub.publish(command)
 
         rate.sleep()

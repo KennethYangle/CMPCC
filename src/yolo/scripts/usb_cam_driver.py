@@ -56,7 +56,8 @@ class USBCamDriver:
 
         while not rospy.is_shutdown() and rval:
             # Resize the frame
-            frame = cv2.resize(frame, (self.image_width, self.image_height))
+            # frame = cv2.resize(frame, (self.image_width, self.image_height))
+            frame = cv2.flip(frame, -1)
 
             # Publish the image
             try:

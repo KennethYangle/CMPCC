@@ -325,8 +325,8 @@ int main(int argc, char **argv)
         while (ros::ok())
         {
             att_ax = attack_cmd.acceleration.x;  att_ay = attack_cmd.acceleration.y;  att_az = attack_cmd.acceleration.z;  att_yr = attack_cmd.yaw_dot;
-            local_acc_target(att_ax, att_ay, att_az, att_yr);
-            // local_vel_target(attack_cmd.velocity.x, attack_cmd.velocity.y, attack_cmd.velocity.z, attack_cmd.yaw_dot);
+            // local_acc_target(att_ax, att_ay, att_az, att_yr);
+            local_vel_target(attack_cmd.velocity.x, attack_cmd.velocity.y, attack_cmd.velocity.z, attack_cmd.yaw_dot);
 
             ros::spinOnce();
             rate.sleep();

@@ -157,7 +157,7 @@ class Utils(object):
         # n_td = np.array([np.cos(yaw_d), np.sin(yaw_d), 0], dtype=np.float64)
         n_td = np.array([np.cos(pos_info["mav_yaw"]), np.sin(pos_info["mav_yaw"]), 0.], dtype=np.float64)
         # v_1 = max(2.5 - pos_i[2]/100., 0.5) * (n_eo - n_td)   # n_t -> n_td
-        v_1 = self.RadialGain(pos_i, self.u0, 1.5, 0.) * max(2.0 - pos_i[2]/100., 0.5) * (1.1*n_eo - n_td)   # n_t -> n_td
+        v_1 = self.RadialGain(pos_i, self.u0, 1.5, 0.) * max(2.0 - pos_i[2]/100., 0.5) * (n_eo - n_td)   # n_t -> n_td
         v_2 = 1.0 * n_td            # v   -> n_td
 
         v_d = v_1 + v_2
@@ -172,7 +172,7 @@ class Utils(object):
         yaw_rate = 2.0*(self.u0 - pos_i[0])/self.u0
         
         # print("n_co:{}, n_bo:{}, n_eo:{}, v_1:{}, v_2:{}, v_d:{}, a_d: {}".format(n_co, n_bo, n_eo, v_1, v_2, v_d, a_d))
-        return [a_d[0], a_d[1], a_d[2], yaw_rate, v_d[0], v_d[1], v_d[2]]
+        return [a_d[0], a_d[1], a_d[2], v_d[0], v_d[1], v_d[2], yaw_rate]
 
     def RadialGain(self, pos_i, r, max_gain, min_gain):
         err = (pos_i[0] - self.u0)**2 + (pos_i[1] - self.v0)**2
@@ -202,14 +202,14 @@ class Utils(object):
         v_d = v_1 + v_2
         v_d /= np.linalg.norm(v_d)
         V = np.linalg.norm(pos_info["mav_vel"])
-        v_d *= V + 0.8
-        v_d[2] = self.SaftyZ(v_d[2], 1.)
+        v_d *= V + 0.7
+        v_d[2] = self.SaftyZ(v_d[2], 2.5)
         # v_d *= V + 2.0
 
         yaw_rate = 0.0025*(self.u0 - pos_i[0])
         
         # print("n_co:{}, n_bo:{}, n_eo:{}, v_1:{}, v_2:{}, v_d:{}".format(n_co, n_bo, n_eo, v_1, v_2, v_d))
-        return [v_d[0], v_d[1], v_d[2], yaw_rate]
+        return [0,0,0, v_d[0], v_d[1], v_d[2], yaw_rate]
 
     def BacksteppingController(self, pos_info, pos_i, dt, controller_reset):
         # params
