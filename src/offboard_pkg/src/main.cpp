@@ -296,7 +296,8 @@ int main(int argc, char **argv)
             // local_acc_target((1-w)*mpcc_ax + w*att_ax, (1-w)*mpcc_ay + w*att_ay, (1-w)*mpcc_az + w*att_az, (1-w)*mpcc_yr + w*att_yr);
             if (w > 0.99) {
                 att_ax = attack_cmd.acceleration.x;  att_ay = attack_cmd.acceleration.y;  att_az = attack_cmd.acceleration.z;  att_yr = attack_cmd.yaw_dot;
-                local_acc_target(att_ax, att_ay, att_az, att_yr);
+                // local_acc_target(att_ax, att_ay, att_az, att_yr);
+                local_vel_target(attack_cmd.velocity.x, attack_cmd.velocity.y, attack_cmd.velocity.z, attack_cmd.yaw_dot);
             }
             else {
                 local_pva_target(mpcc_cmd.position.x, mpcc_cmd.position.y, mpcc_cmd.position.z, mpcc_cmd.velocity.x, mpcc_cmd.velocity.y, mpcc_cmd.velocity.z, mpcc_cmd.acceleration.x, mpcc_cmd.acceleration.y, mpcc_cmd.acceleration.z, mpcc_cmd.yaw_dot);
