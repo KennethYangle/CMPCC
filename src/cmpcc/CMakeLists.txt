@@ -34,59 +34,27 @@ add_executable(osqp_test
 )
 target_link_libraries(osqp_test osqp::osqp)
 
-add_executable(corridor_test
-    src/corridor_test.cpp
-    src/map.cpp
-    src/bezier_base.cpp
-    src/my_spline.cpp
-    src/corridor.cpp)
-include_directories(${PYTHON_INCLUDE_DIRS})
-target_include_directories(corridor_test PRIVATE ${Python_INCLUDE_DIRS})
-add_dependencies(corridor_test ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(corridor_test ${catkin_LIBRARIES} ${Python_LIBRARIES} yaml-cpp)
-
-add_executable(solver_test
-    src/display_msg.cpp
-    src/solver_test.cpp
-    src/mpc_solver.cpp
-    src/osqp_interface.cpp
-    src/model.cpp
-    src/map.cpp
-    src/bezier_base.cpp
-    src/my_spline.cpp
-    src/corridor.cpp)
-target_include_directories(solver_test PRIVATE ${Python_INCLUDE_DIRS})
-add_dependencies(solver_test ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(solver_test
-    ${catkin_LIBRARIES} 
-    ${Python_LIBRARIES}
-    yaml-cpp
-    osqp::osqp
-)
-
-add_executable(fly_node
-    src/fly.cpp
-    src/display_msg.cpp
-    src/mpc_solver.cpp
-    src/osqp_interface.cpp
-    src/model.cpp
-    src/map.cpp
-    src/bezier_base.cpp
-    src/my_spline.cpp
-    src/corridor.cpp) 
-target_include_directories(fly_node PRIVATE ${Python_INCLUDE_DIRS})
-add_dependencies(fly_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(fly_node
-    ${catkin_LIBRARIES}
-    ${Python_LIBRARIES}
-    yaml-cpp
-    osqp::osqp
-)
+# add_executable(fly_node
+#     src/fly.cpp
+#     src/display_msg.cpp
+#     src/mpc_solver.cpp
+#     src/osqp_interface.cpp
+#     src/model.cpp
+#     src/map.cpp
+#     src/bezier_base.cpp
+#     src/my_spline.cpp
+#     src/corridor.cpp) 
+# target_include_directories(fly_node PRIVATE ${Python_INCLUDE_DIRS})
+# add_dependencies(fly_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
+# target_link_libraries(fly_node
+#     ${catkin_LIBRARIES}
+#     ${Python_LIBRARIES}
+#     yaml-cpp
+#     osqp::osqp
+# )
 
 add_executable(pva_chasing_node
     src/pva_chasing.cpp
-    src/display_msg.cpp
-    src/mpc_solver.cpp
     src/osqp_interface.cpp
     src/model.cpp
     src/map.cpp
@@ -101,22 +69,3 @@ target_link_libraries(pva_chasing_node
     yaml-cpp
     osqp::osqp
 )
-
-add_executable(plot_bag_node
-    src/plot_bag_node.cpp
-    src/display_msg.cpp
-    src/mpc_solver.cpp
-    src/osqp_interface.cpp
-    src/model.cpp
-    src/map.cpp
-    src/bezier_base.cpp
-    src/my_spline.cpp
-    src/corridor.cpp) 
-target_include_directories(plot_bag_node PRIVATE ${Python_INCLUDE_DIRS})
-add_dependencies(plot_bag_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
-target_link_libraries(plot_bag_node
-    ${catkin_LIBRARIES}
-    ${Python_LIBRARIES}
-    yaml-cpp
-    osqp::osqp
-)   

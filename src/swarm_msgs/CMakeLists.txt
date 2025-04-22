@@ -27,6 +27,8 @@ add_message_files(
   PiecewiseBezier.msg
   TimeOptimalPMMParam.msg
   TimeOptimalPMMPieces.msg
+  DiscreteTrajectoryPoint.msg
+  DiscreteTrajectory.msg
   Waypoint.msg
   BoundingBox.msg
   BoundingBoxes.msg
