@@ -203,7 +203,7 @@ int main(int argc, char **argv) {
 
     // Subscriber
     ros::Subscriber sub_path = nodeHandle.subscribe<swarm_msgs::DiscreteTrajectory>(
-                                    "/discrete_trajectory",
+                                    "/stitched_trajectory",
                                     5,
                                     discrete_trajectory_callback);
     ros::Subscriber local_pos_sub = nodeHandle.subscribe<geometry_msgs::PoseStamped>("/mavros/local_position/pose", 10, local_pos_cb, ros::TransportHints().tcpNoDelay());

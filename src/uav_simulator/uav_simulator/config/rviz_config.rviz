@@ -11,6 +11,7 @@ Panels:
         - /Planning1/many ReplanTraj1
         - /Planning1/initialReplanPts1
         - /Sensors1/SensedPoints_gpu1
+        - /Reference_traj1
         - /Balloons1
         - /particles1
         - /Cmd_vis1
@@ -223,7 +224,7 @@ Visualization Manager:
       Radius: 0.029999999329447746
       Shaft Diameter: 0.10000000149011612
       Shaft Length: 0.10000000149011612
-      Topic: /refer_path
+      Topic: /path_planning_node/visualization/stitched_path
       Unreliable: false
       Value: true
     - Alpha: 1
@@ -255,7 +256,7 @@ Visualization Manager:
       Marker Topic: /drone_pose
       Name: DronePose
       Namespaces:
-        {}
+        drone: true
       Queue Size: 100
       Value: true
     - Class: rviz/Marker
@@ -279,7 +280,7 @@ Visualization Manager:
       Marker Topic: /rviz/obj
       Name: Balloons
       Namespaces:
-        {}
+        "": true
       Queue Size: 100
       Value: true
     - Class: rviz/MarkerArray
@@ -319,7 +320,7 @@ Visualization Manager:
       Marker Topic: /cmd_vis
       Name: Cmd_vis
       Namespaces:
-        {}
+        cmd: true
       Queue Size: 100
       Value: true
   Enabled: true
