@@ -1,5 +1,6 @@
 #include "path_planning.h"
 #include <exception> // Include for std::exception
+#include <limits>    // Include for numeric_limits
 
 // Helper function implementation for calculating PMM state at time t
 PathPlanningNode::PMMState PathPlanningNode::calculatePMMState(
@@ -91,101 +92,44 @@ void PathPlanningNode::pathPointsCallback(const swarm_msgs::MassPoints::ConstPtr
         return;
     }
 
-    // --- Stage 1 & 2: Calculate PMM Parameters for the *entire new raw path* ---
-    // This calculates the parameters as if we were generating a completely new trajectory.
-    swarm_msgs::TimeOptimalPMMPieces new_raw_params; // Parameters for the trajectory defined by msg
-    new_raw_params.header.stamp = ros::Time::now();
-    new_raw_params.num_segment = msg->points.size() - 1;
-    new_raw_params.T_tatal = 0.0;
-
-    current_velocity_ = msg->points[0].velocity;
-    current_V_ = norm_Vector3(current_velocity_);
-    current_V_ = std::max(2.0, current_V_);
-
-    // 1. Basic info
-    for (size_t i = 0; i < msg->points.size() - 1; ++i) {
-        const auto& pt_start = msg->points[i];
-        const auto& pt_end = msg->points[i + 1];
-        swarm_msgs::TimeOptimalPMMParam p;
-        p.trajectory_id = i; p.x0 = pt_start.position; p.v0 = pt_start.velocity;
-        p.xT = pt_end.position; p.vT = pt_end.velocity;
-        new_raw_params.pieces.push_back(p);
-    }
-    // 2. Smooth intermediate velocities
-    for (size_t i = 0; i < new_raw_params.pieces.size() - 1; ++i) {
-        p1_ = new_raw_params.pieces[i].x0; p2_ = new_raw_params.pieces[i].xT; p3_ = new_raw_params.pieces[i+1].xT;
-        v1_ = subtract_Vector3(p2_, p1_); v2_ = subtract_Vector3(p3_, p2_);
-        if (norm_Vector3(v1_) < 1e-6 || norm_Vector3(v2_) < 1e-6) { v_ = new_raw_params.pieces[i].vT; }
-        else {
-            v1_ = normalize_Vector3(v1_); v2_ = normalize_Vector3(v2_);
-            geometry_msgs::Vector3 v1_plus_v2 = add_Vector3(v1_, v2_);
-            if (norm_Vector3(v1_plus_v2) < 1e-6) { v_.x = v_.y = v_.z = 0.0; }
-            else { v_dir_ = normalize_Vector3(v1_plus_v2); v_ = scalar_multiply_Vector3(v_dir_, current_V_); }
-        }
-        new_raw_params.pieces[i].vT = v_; new_raw_params.pieces[i+1].v0 = v_;
-    }
-    // 3. Compute PMM times/cases for all raw segments
-    geometry_msgs::Vector3 umax_vec, umin_vec, vmax_vec, vmin_vec; // Local temps for constraints
+    // --- Stage 0: Prepare local constraints ---
+    // It's cleaner to create these once
+    geometry_msgs::Vector3 umax_vec, umin_vec, vmax_vec, vmin_vec;
     umax_vec.x = u_max_[0]; umax_vec.y = u_max_[1]; umax_vec.z = u_max_[2];
     umin_vec.x = u_min_[0]; umin_vec.y = u_min_[1]; umin_vec.z = u_min_[2];
     vmax_vec.x = v_max_[0]; vmax_vec.y = v_max_[1]; vmax_vec.z = v_max_[2];
     vmin_vec.x = v_min_[0]; vmin_vec.y = v_min_[1]; vmin_vec.z = v_min_[2];
-    for (size_t i = 0; i < new_raw_params.pieces.size(); ++i) {
-         try {
-            TimeOptimalPMM3D pmm3d(new_raw_params.pieces[i].x0, new_raw_params.pieces[i].v0,
-                                   new_raw_params.pieces[i].xT, new_raw_params.pieces[i].vT,
-                                   umax_vec, umin_vec, vmax_vec, vmin_vec);
-            auto [t1, t2, T, case_idx] = pmm3d.compute_times();
-            if (T < 0.0) { ROS_ERROR("PMM failed for raw segment %zu (T=%f). Aborting.", i, T); return; }
-            if (T < sampling_epsilon_) { T = 0.0; t1.x=t1.y=t1.z=0.0; t2.x=t2.y=t2.z=0.0; }
-            // Update parameters in new_raw_params
-            new_raw_params.pieces[i].umax.x = pmm3d.pmm_x.umax; 
-            new_raw_params.pieces[i].umax.y = pmm3d.pmm_y.umax; new_raw_params.pieces[i].umax.z = pmm3d.pmm_z.umax;
-            new_raw_params.pieces[i].umin.x = pmm3d.pmm_x.umin;
-            new_raw_params.pieces[i].umin.y = pmm3d.pmm_y.umin; new_raw_params.pieces[i].umin.z = pmm3d.pmm_z.umin;
-            new_raw_params.pieces[i].t1 = t1; new_raw_params.pieces[i].t2 = t2;
-            new_raw_params.pieces[i].T = T; new_raw_params.pieces[i].case_idx = case_idx;
-            new_raw_params.T_tatal += T;
-        } catch (const std::exception& e) {
-            ROS_ERROR("Exception during initial PMM computation segment %zu: %s. Aborting.", i, e.what()); return;
-        } catch (...) {
-            ROS_ERROR("Unknown exception during initial PMM computation segment %zu. Aborting.", i); return;
-        }
-    }
-    // Now new_raw_params holds the info for the desired trajectory *if* we started from msg->points[0]
 
-
-    // --- Stage 4: Stitching Decision and Execution ---
-    std::vector<swarm_msgs::DiscreteTrajectoryPoint> final_trajectory_points;
-    double final_total_time = 0.0;
-
-    // --- Check if we should perform stitching ---
+    // --- Decide whether to stitch ---
     bool perform_stitch = false;
-    { // Scope for locks
+    {
         std::lock_guard<std::mutex> lock_pose(pose_mutex_);
-        std::lock_guard<std::mutex> lock_traj(trajectory_mutex_); // Lock both before checking flags
+        std::lock_guard<std::mutex> lock_traj(trajectory_mutex_);
         if (has_published_trajectory_ && has_received_pose_ && !current_published_trajectory_.empty()) {
             perform_stitch = true;
         }
-    } // Locks released here
+    }
 
+    std::vector<swarm_msgs::DiscreteTrajectoryPoint> final_trajectory_points;
+    double final_total_time = 0.0;
+
+    // ==================================================
+    // --- BRANCH 1: PERFORM STITCHING ---
+    // ==================================================
     if (perform_stitch) {
-        ROS_DEBUG("Performing trajectory stitching.");
+        ROS_DEBUG("Attempting trajectory stitching.");
         std::vector<swarm_msgs::DiscreteTrajectoryPoint> frozen_segment;
-        swarm_msgs::DiscreteTrajectoryPoint freeze_point;
-        geometry_msgs::Vector3 goal_pos;
-        geometry_msgs::Vector3 goal_vel;
+        swarm_msgs::DiscreteTrajectoryPoint freeze_point; // State (P,V,A) at t_freeze
         double t_freeze = 0.0;
 
-        { // Scope for reading shared data under locks
+        // --- Step 1: Calculate Freeze Point and Extract Frozen Segment ---
+        { // Scope for reading shared data
             std::lock_guard<std::mutex> lock_pose(pose_mutex_);
             std::lock_guard<std::mutex> lock_traj(trajectory_mutex_);
 
             Eigen::Vector3d drone_pos(current_drone_pose_.pose.position.x,
                                       current_drone_pose_.pose.position.y,
                                       current_drone_pose_.pose.position.z);
-
-            // Find projection on the *currently published* trajectory
             double t_proj = findNearestTimeOnTrajectory(current_published_trajectory_, drone_pos);
             double current_total_active_time = current_published_trajectory_.back().time_from_start;
             t_freeze = std::min(t_proj + freeze_duration_, current_total_active_time);
@@ -193,14 +137,13 @@ void PathPlanningNode::pathPointsCallback(const swarm_msgs::MassPoints::ConstPtr
 
             ROS_DEBUG("Stitching: t_proj=%.3f, t_freeze=%.3f", t_proj, t_freeze);
 
-            // Extract frozen part
             auto it_end = std::lower_bound(current_published_trajectory_.begin(), current_published_trajectory_.end(), t_freeze,
                                           [](const swarm_msgs::DiscreteTrajectoryPoint& p, double t){ return p.time_from_start < t; });
             frozen_segment.assign(current_published_trajectory_.begin(), it_end);
 
             if (!interpolateState(current_published_trajectory_, t_freeze, freeze_point)) {
-                ROS_ERROR("Failed to interpolate freeze point at t=%.3f during stitching. Publishing new raw trajectory instead.", t_freeze);
-                perform_stitch = false; // Fallback to non-stitching case
+                ROS_ERROR("Failed interpolate freeze point t=%.3f. Fallback to new trajectory.", t_freeze);
+                perform_stitch = false; // Go to fallback branch
             } else {
                  if (frozen_segment.empty() || std::abs(frozen_segment.back().time_from_start - t_freeze) > sampling_epsilon_) {
                      frozen_segment.push_back(freeze_point);
@@ -211,100 +154,213 @@ void PathPlanningNode::pathPointsCallback(const swarm_msgs::MassPoints::ConstPtr
         } // Locks released
 
         if(perform_stitch && frozen_segment.empty()){
-             ROS_WARN("Frozen segment became empty after interpolation (t_freeze=%.3f?). Publishing new raw trajectory instead.", t_freeze);
-             perform_stitch = false; // Fallback
+             ROS_WARN("Frozen segment empty (t_freeze=%.3f?). Fallback to new trajectory.", t_freeze);
+             perform_stitch = false; // Go to fallback branch
         }
 
+        // --- Step 2: Identify Relevant Waypoints from New Request (`msg->points`) ---
+        int first_replan_target_idx = 1;
+        // int first_replan_target_idx = -1; // Index in msg->points for the first target *after* freeze_point
+        // if (perform_stitch) {
+        //     Eigen::Vector3d freeze_pos_eig(freeze_point.position.x, freeze_point.position.y, freeze_point.position.z);
+        //     double min_dist_sq = std::numeric_limits<double>::max();
+        //     int closest_idx = -1;
 
-        if (perform_stitch) {
-            // Get goal state from the *end* of the calculated raw parameters
-            goal_pos = new_raw_params.pieces.back().xT;
-            goal_vel = new_raw_params.pieces.back().vT;
+        //     for (size_t i = 0; i < msg->points.size(); ++i) {
+        //         Eigen::Vector3d pt_pos_eig(msg->points[i].position.x, msg->points[i].position.y, msg->points[i].position.z);
+        //         double dist_sq = (freeze_pos_eig - pt_pos_eig).squaredNorm();
+        //         if (dist_sq < min_dist_sq) {
+        //             min_dist_sq = dist_sq;
+        //             closest_idx = i;
+        //         }
+        //     }
 
-            // --- Replan PMM from freeze_point to goal ---
-            geometry_msgs::Vector3 start_pos;
-            start_pos.x = freeze_point.position.x;
-            start_pos.y = freeze_point.position.y;
-            start_pos.z = freeze_point.position.z;
-            geometry_msgs::Vector3 start_vel = freeze_point.velocity;
-            std::vector<swarm_msgs::DiscreteTrajectoryPoint> new_sampled_segment;
+        //     if (closest_idx < 0) { // Should not happen if msg->points is not empty
+        //         ROS_ERROR("Could not find closest point in new path request. Fallback.");
+        //         perform_stitch = false;
+        //     } else {
+        //          // The target for the first replanned segment is the point *after* the closest one.
+        //          first_replan_target_idx = closest_idx + 1;
+        //          if (first_replan_target_idx >= msg->points.size()) {
+        //              ROS_WARN("Freeze point is closest to the *last* point of the new request. No further path to replan. Trajectory will end at freeze point.");
+        //              // We will essentially just keep the frozen segment in this case.
+        //              first_replan_target_idx = -1; // Mark that there's nothing to replan
+        //          } else {
+        //              ROS_DEBUG("Replanning starts towards new waypoint index %d.", first_replan_target_idx);
+        //          }
+        //     }
+        // }
 
-            try {
-                TimeOptimalPMM3D pmm3d_replan(start_pos, start_vel, goal_pos, goal_vel,
-                                              umax_vec, umin_vec, vmax_vec, vmin_vec); // Constraints loaded earlier
-                auto [t1_re, t2_re, T_re, case_idx_re] = pmm3d_replan.compute_times();
+        // --- Step 3 & 4: Construct and Optimize Replanning Segments ---
+        std::vector<swarm_msgs::TimeOptimalPMMParam> replan_params; // Parameters for segments *after* freeze_point
+        if (perform_stitch && first_replan_target_idx != -1) {
+            // Create the parameter segments for replanning
+            geometry_msgs::Vector3 current_x0, current_v0;
+            // First segment starts from freeze point
+            current_x0.x = freeze_point.position.x; current_x0.y = freeze_point.position.y; current_x0.z = freeze_point.position.z;
+            current_v0 = freeze_point.velocity;
 
-                if (T_re < 0.0) {
-                    ROS_ERROR("PMM replanning failed from freeze point (T=%.3f). Publishing new raw trajectory instead.", T_re);
-                    perform_stitch = false; // Fallback
-                }
-                else {
-                     if (T_re < sampling_epsilon_){ T_re = 0.0; }
-                     geometry_msgs::Vector3 umax_re, umin_re; // Get sync'd constraints
-                     umax_re.x = pmm3d_replan.pmm_x.umax; /* y, z */ umax_re.y=pmm3d_replan.pmm_y.umax; umax_re.z=pmm3d_replan.pmm_z.umax;
-                     umin_re.x = pmm3d_replan.pmm_x.umin; /* y, z */ umin_re.y=pmm3d_replan.pmm_y.umin; umin_re.z=pmm3d_replan.pmm_z.umin;
+            for (size_t i = first_replan_target_idx; i < msg->points.size(); ++i) {
+                 swarm_msgs::TimeOptimalPMMParam p;
+                 p.trajectory_id = replan_params.size(); // Sequential ID for this part
+                 p.x0 = current_x0;
+                 p.v0 = current_v0;
+                 p.xT = msg->points[i].position; // Target is the waypoint from msg
+                 p.vT = msg->points[i].velocity; // Target velocity (will be smoothed)
+                 replan_params.push_back(p);
 
-                    // Sample the replanned segment
-                    if (!samplePMMTrajectorySegment(start_pos, start_vel, goal_pos, goal_vel,
-                                                    t1_re, t2_re, T_re, case_idx_re,
-                                                    umax_re, umin_re,
-                                                    t_freeze, // Time offset
-                                                    replanned_sampling_points_, // Use specific sampling number
-                                                    new_sampled_segment))
-                    {
-                        ROS_ERROR("Failed to sample replanned PMM segment. Publishing new raw trajectory instead.");
-                        perform_stitch = false; // Fallback
-                    }
-                }
-            } catch (const std::exception& e) {
-                ROS_ERROR("Exception during PMM replanning: %s. Publishing new raw trajectory instead.", e.what());
-                perform_stitch = false; // Fallback
-            } catch (...) {
-                 ROS_ERROR("Unknown exception during PMM replanning. Publishing new raw trajectory instead.");
-                 perform_stitch = false; // Fallback
+                 // Setup for next iteration
+                 current_x0 = p.xT;
+                 current_v0 = p.vT; // This v0 will be overwritten by smoothing except for the very last segment's vT
             }
 
-             if(perform_stitch) {
-                 // --- Combine ---
-                 final_trajectory_points = frozen_segment;
-                 // Avoid duplicate point at connection
-                 if (!new_sampled_segment.empty() && !frozen_segment.empty()) {
-                     if (std::abs(new_sampled_segment.front().time_from_start - frozen_segment.back().time_from_start) < sampling_epsilon_) {
-                         new_sampled_segment.erase(new_sampled_segment.begin());
+             // Smooth intermediate velocities *within the replan_params*
+             if (replan_params.size() > 1) { // Need at least two segments to smooth intermediate point
+                  for (size_t i = 0; i < replan_params.size() - 1; ++i) {
+                      p1_ = replan_params[i].x0; p2_ = replan_params[i].xT; p3_ = replan_params[i+1].xT;
+                      v1_ = subtract_Vector3(p2_, p1_); v2_ = subtract_Vector3(p3_, p2_);
+                      if (norm_Vector3(v1_) < 1e-6 || norm_Vector3(v2_) < 1e-6) { v_ = replan_params[i].vT; }
+                      else {
+                          v1_ = normalize_Vector3(v1_); v2_ = normalize_Vector3(v2_);
+                          geometry_msgs::Vector3 v1_plus_v2 = add_Vector3(v1_, v2_);
+                          if (norm_Vector3(v1_plus_v2) < 1e-6) { v_.x = v_.y = v_.z = 0.0; }
+                          else { v_dir_ = normalize_Vector3(v1_plus_v2); v_ = scalar_multiply_Vector3(v_dir_, current_V_); } // Use same speed target? Or maybe derive from context? Using current_V_ for now.
+                      }
+                      replan_params[i].vT = v_; replan_params[i+1].v0 = v_;
+                  }
+             }
+
+            // Compute PMM parameters for the replanned segments
+            bool replan_ok = true;
+            for (size_t i = 0; i < replan_params.size(); ++i) {
+                 try {
+                    TimeOptimalPMM3D pmm3d(replan_params[i].x0, replan_params[i].v0,
+                                           replan_params[i].xT, replan_params[i].vT,
+                                           umax_vec, umin_vec, vmax_vec, vmin_vec);
+                    auto [t1, t2, T, case_idx] = pmm3d.compute_times();
+                    if (T < 0.0) { ROS_ERROR("PMM failed replan segment %zu (T=%f). Fallback.", i, T); replan_ok = false; break; }
+                    if (T < sampling_epsilon_) { T = 0.0; t1.x=t1.y=t1.z=0.0; t2.x=t2.y=t2.z=0.0; }
+                    replan_params[i].umax.x = pmm3d.pmm_x.umax; replan_params[i].umax.y=pmm3d.pmm_y.umax; replan_params[i].umax.z=pmm3d.pmm_z.umax;
+                    replan_params[i].umin.x = pmm3d.pmm_x.umin; replan_params[i].umin.y=pmm3d.pmm_y.umin; replan_params[i].umin.z=pmm3d.pmm_z.umin;
+                    replan_params[i].t1 = t1; replan_params[i].t2 = t2; replan_params[i].T = T; replan_params[i].case_idx = case_idx;
+                 } catch (const std::exception& e) { ROS_ERROR("Exception PMM replan seg %zu: %s. Fallback.", i, e.what()); replan_ok = false; break;
+                 } catch (...) { ROS_ERROR("Unknown exception PMM replan seg %zu. Fallback.", i); replan_ok = false; break; }
+            }
+            if (!replan_ok) { perform_stitch = false; } // Fallback if PMM failed for any segment
+        }
+
+        // --- Step 5: Sample Replanning Segments ---
+        std::vector<swarm_msgs::DiscreteTrajectoryPoint> new_sampled_segment_combined;
+        if (perform_stitch && first_replan_target_idx != -1) {
+            double accumulated_replan_time = t_freeze; // Start time is t_freeze
+            for (const auto& piece : replan_params) {
+                std::vector<swarm_msgs::DiscreteTrajectoryPoint> segment_points;
+                if (!samplePMMTrajectorySegment(piece.x0, piece.v0, piece.xT, piece.vT,
+                                                piece.t1, piece.t2, piece.T, piece.case_idx,
+                                                piece.umax, piece.umin,
+                                                accumulated_replan_time, // Use correct time offset
+                                                replanned_sampling_points_,
+                                                segment_points))
+                {
+                     ROS_ERROR("Failed sampling replanned segment. Fallback."); perform_stitch = false; break;
+                }
+                // Combine, avoiding duplicates
+                 if (!new_sampled_segment_combined.empty() && !segment_points.empty()) {
+                     if (std::abs(new_sampled_segment_combined.back().time_from_start - segment_points.front().time_from_start) < sampling_epsilon_) {
+                         segment_points.erase(segment_points.begin());
                      }
                  }
-                 final_trajectory_points.insert(final_trajectory_points.end(),
-                                                std::make_move_iterator(new_sampled_segment.begin()),
-                                                std::make_move_iterator(new_sampled_segment.end()));
-                 if (!final_trajectory_points.empty()) {
-                    final_total_time = final_trajectory_points.back().time_from_start;
-                 }
-                 ROS_INFO("Stitching successful. Final trajectory duration: %.3f s", final_total_time);
-             }
+                 new_sampled_segment_combined.insert(new_sampled_segment_combined.end(),
+                                                std::make_move_iterator(segment_points.begin()),
+                                                std::make_move_iterator(segment_points.end()));
+                 accumulated_replan_time += piece.T; // Accumulate duration for next offset
+            }
         }
-    } // End of stitching block
 
-    // --- If stitching was not performed or failed, sample the new raw trajectory directly ---
+        // --- Step 6: Combine Frozen and New Samples ---
+        if (perform_stitch) {
+             if (first_replan_target_idx == -1) { // Case where freeze was near end, only keep frozen part
+                 final_trajectory_points = frozen_segment;
+             } else {
+                 final_trajectory_points = frozen_segment;
+                 // Insert the newly sampled points (already combined in new_sampled_segment_combined)
+                 final_trajectory_points.insert(final_trajectory_points.end(),
+                                                std::make_move_iterator(new_sampled_segment_combined.begin()),
+                                                std::make_move_iterator(new_sampled_segment_combined.end()));
+             }
+
+             if (!final_trajectory_points.empty()) { final_total_time = final_trajectory_points.back().time_from_start; }
+             else { final_total_time = 0.0; } // Should not happen if frozen segment existed
+             ROS_INFO("Stitching successful. Final duration: %.3f s", final_total_time);
+        }
+
+    } // END if (perform_stitch)
+
+    // ==================================================
+    // --- BRANCH 2: NO STITCHING (or Fallback) ---
+    // ==================================================
     if (!perform_stitch) {
-        ROS_DEBUG("Not stitching. Sampling new raw trajectory directly.");
+        ROS_DEBUG("Not stitching or fallback. Generating new trajectory from raw points.");
+        final_trajectory_points.clear(); // Start fresh
         double accumulated_time = 0.0;
-        final_trajectory_points.clear(); // Ensure it's empty before filling
 
-        for (size_t i = 0; i < new_raw_params.pieces.size(); ++i) {
-            const auto& piece = new_raw_params.pieces[i];
+        // --- We need the PMM parameters for the raw path again ---
+        // Re-calculate them (or ideally, store them from the beginning if we didn't modify new_raw_params)
+        // For simplicity, let's assume new_raw_params calculated at the start is still valid.
+        // If new_raw_params was modified during stitching attempts, it MUST be recalculated here.
+        // Let's add a check or recalculate to be safe.
+
+        // --- Recalculate new_raw_params (Safest approach) ---
+        swarm_msgs::TimeOptimalPMMPieces new_raw_params_fallback;
+        new_raw_params_fallback.header.stamp = ros::Time::now();
+        new_raw_params_fallback.num_segment = msg->points.size() - 1;
+        new_raw_params_fallback.T_tatal = 0.0;
+        // 1. Basic info
+        for (size_t i = 0; i < msg->points.size() - 1; ++i) { /* ... copy x0,v0,xT,vT ... */
+             const auto& pt_start = msg->points[i]; const auto& pt_end = msg->points[i + 1];
+             swarm_msgs::TimeOptimalPMMParam p; p.trajectory_id = i; p.x0 = pt_start.position; p.v0 = pt_start.velocity;
+             p.xT = pt_end.position; p.vT = pt_end.velocity; new_raw_params_fallback.pieces.push_back(p);
+        }
+        // 2. Smooth velocities
+        for (size_t i = 0; i < new_raw_params_fallback.pieces.size() - 1; ++i) { /* ... smooth ... */
+             p1_ = new_raw_params_fallback.pieces[i].x0; p2_ = new_raw_params_fallback.pieces[i].xT; p3_ = new_raw_params_fallback.pieces[i+1].xT;
+             v1_ = subtract_Vector3(p2_, p1_); v2_ = subtract_Vector3(p3_, p2_);
+             if (norm_Vector3(v1_) < 1e-6 || norm_Vector3(v2_) < 1e-6) { v_ = new_raw_params_fallback.pieces[i].vT; } else { v1_ = normalize_Vector3(v1_); v2_ = normalize_Vector3(v2_); geometry_msgs::Vector3 v1p2 = add_Vector3(v1_, v2_); if (norm_Vector3(v1p2) < 1e-6) { v_.x=v_.y=v_.z=0.0;} else { v_dir_ = normalize_Vector3(v1p2); v_ = scalar_multiply_Vector3(v_dir_, current_V_);}}
+             new_raw_params_fallback.pieces[i].vT = v_; new_raw_params_fallback.pieces[i+1].v0 = v_;
+        }
+        // 3. Compute PMM params
+        bool fallback_pmm_ok = true;
+        for (size_t i = 0; i < new_raw_params_fallback.pieces.size(); ++i) { /* ... compute T, t1, t2 ... */
+             try {
+                 TimeOptimalPMM3D pmm3d(new_raw_params_fallback.pieces[i].x0, new_raw_params_fallback.pieces[i].v0, new_raw_params_fallback.pieces[i].xT, new_raw_params_fallback.pieces[i].vT, umax_vec, umin_vec, vmax_vec, vmin_vec);
+                 auto [t1,t2,T,cid] = pmm3d.compute_times();
+                 if(T<0){ROS_ERROR("PMM failed fallback seg %zu",i); fallback_pmm_ok=false; break;}
+                 if(T<sampling_epsilon_){ T=0; t1.x=t1.y=t1.z=0; t2.x=t2.y=t2.z=0;}
+                 new_raw_params_fallback.pieces[i].umax.x = pmm3d.pmm_x.umax; new_raw_params_fallback.pieces[i].umax.y=pmm3d.pmm_y.umax; new_raw_params_fallback.pieces[i].umax.z=pmm3d.pmm_z.umax;
+                 new_raw_params_fallback.pieces[i].umin.x = pmm3d.pmm_x.umin; new_raw_params_fallback.pieces[i].umin.y=pmm3d.pmm_y.umin; new_raw_params_fallback.pieces[i].umin.z=pmm3d.pmm_z.umin;
+                 new_raw_params_fallback.pieces[i].t1=t1; new_raw_params_fallback.pieces[i].t2=t2; new_raw_params_fallback.pieces[i].T=T; new_raw_params_fallback.pieces[i].case_idx=cid;
+                 new_raw_params_fallback.T_tatal += T;
+             } catch (...) { ROS_ERROR("Exception PMM fallback seg %zu", i); fallback_pmm_ok = false; break; }
+        }
+        // --- End Recalculate ---
+
+        if (!fallback_pmm_ok) {
+             ROS_ERROR("Failed to calculate PMM parameters even for fallback. Aborting.");
+             return; // Give up entirely
+        }
+
+
+        // Sample using the recalculated (or original) new_raw_params
+        for (size_t i = 0; i < new_raw_params_fallback.pieces.size(); ++i) {
+            const auto& piece = new_raw_params_fallback.pieces[i];
             std::vector<swarm_msgs::DiscreteTrajectoryPoint> segment_points;
             if (!samplePMMTrajectorySegment(piece.x0, piece.v0, piece.xT, piece.vT,
                                             piece.t1, piece.t2, piece.T, piece.case_idx,
                                             piece.umax, piece.umin,
-                                            accumulated_time, // Time offset for this segment
-                                            initial_sampling_points_, // Use initial sampling number
+                                            accumulated_time, initial_sampling_points_,
                                             segment_points))
-            {
-                 ROS_ERROR("Failed to sample raw segment %zu. Aborting trajectory generation.", i);
-                 return; // Cannot generate full trajectory
-            }
+            { ROS_ERROR("Failed sample raw segment %zu. Aborting.", i); return; }
 
-            // Combine segments, avoiding duplicates
              if (!final_trajectory_points.empty() && !segment_points.empty()) {
                  if (std::abs(final_trajectory_points.back().time_from_start - segment_points.front().time_from_start) < sampling_epsilon_) {
                      segment_points.erase(segment_points.begin());
@@ -313,14 +369,13 @@ void PathPlanningNode::pathPointsCallback(const swarm_msgs::MassPoints::ConstPtr
              final_trajectory_points.insert(final_trajectory_points.end(),
                                             std::make_move_iterator(segment_points.begin()),
                                             std::make_move_iterator(segment_points.end()));
-
             accumulated_time += piece.T;
         }
-         if (!final_trajectory_points.empty()) {
+        if (!final_trajectory_points.empty()) {
             final_total_time = final_trajectory_points.back().time_from_start;
-         } else {
-             final_total_time = 0.0;
-         }
+        } else {
+            final_total_time = 0.0;
+        }
     }
 
 
@@ -346,12 +401,7 @@ void PathPlanningNode::pathPointsCallback(const swarm_msgs::MassPoints::ConstPtr
                  perform_stitch ? "stitched" : "new",
                  final_trajectory_points.size(), final_total_time);
     } else {
-        ROS_WARN("Final trajectory is empty after processing. Nothing published.");
-        // Optionally clear the current published trajectory if it should be empty
-        // {
-        //     std::lock_guard<std::mutex> lock(trajectory_mutex_);
-        //     current_published_trajectory_.clear();
-        // }
+        ROS_WARN("Final trajectory empty. Nothing published.");
     }
 }
 

@@ -112,8 +112,8 @@ public:
         for (const auto &b : msg->points) {
             Balloon balloon;
             balloon.position = Eigen::Vector3d(b.position.x, b.position.y, b.position.z);
-            // balloon.velocity = Eigen::Vector3d(b.velocity.x, b.velocity.y, b.velocity.z);
-            balloon.velocity = Eigen::Vector3d(0., 0., 0.);
+            balloon.velocity = Eigen::Vector3d(b.velocity.x, b.velocity.y, b.velocity.z);
+            // balloon.velocity = Eigen::Vector3d(0., 0., 0.);
             balloons_.push_back(balloon);
         }
     }
