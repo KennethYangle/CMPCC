@@ -68,3 +68,6 @@ target_link_libraries(path_planning_node
   ${Python_LIBRARIES}
   yaml-cpp
 )
+
+add_executable(path_logging_node src/path_logging.cpp)
+target_link_libraries(path_logging_node ${catkin_LIBRARIES})

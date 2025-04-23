@@ -323,6 +323,14 @@ Visualization Manager:
         cmd: true
       Queue Size: 100
       Value: true
+    - Class: rviz/Marker
+      Enabled: true
+      Marker Topic: /visualization/drone_path
+      Name: DroneTraj
+      Namespaces:
+        drone_path_colored: true
+      Queue Size: 100
+      Value: true
   Enabled: true
   Global Options:
     Background Color: 255; 255; 255

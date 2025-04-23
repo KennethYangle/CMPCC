@@ -102,6 +102,10 @@ sleep 1s
 gnome-terminal --tab -t "MPCC" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch cmpcc pva_chasing.launch;exec bash"
 sleep 2s
 
+# 画图，可选
+gnome-terminal --tab -t "Path Logging" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun path path_logging_node;exec bash"
+sleep 1s
+
 # 拦截控制
 gnome-terminal --tab -t "Attack" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun offboard_pkg attack.py;exec bash"
 sleep 1s
