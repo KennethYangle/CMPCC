@@ -43,6 +43,8 @@ USE_PIX=false
 roscore &
 sleep 2s
 
+rosparam set /is_flight $ISFLIGHT
+echo "Parameter /is_flight set to: $(rosparam get /is_flight)"
 
 if [ $ISFLIGHT = 0 ]
 then
@@ -116,3 +118,6 @@ sleep 0.5s
 # 录制bag，保存到/home/nvidia/record/
 gnome-terminal --tab -t "ROSbag Record" -- bash -c "rosbag record --split --size=512 /attack_cmd /camera/image_raw/compressed /balloons/masspoint /diagnostics /drone_1/balloons/masspoint /drone_1/mavros/local_position/pose /drone_1/mavros/local_position/velocity_local /drone_2/balloons/masspoint /drone_2/mavros/local_position/pose /drone_2/mavros/local_position/velocity_local /camera/image_raw/compressed /mavros/state /mavros/global_position/global /mavros/imu/data /mavros/local_position/pose /mavros/local_position/velocity_local /mavros/rc/in /mavros/setpoint_raw/local /mavros/setpoint_position/local /mavros/setpoint_velocity/cmd_vel /mavros/home_position/home /tracker/pos_image /path_points  -o /home/nvidia/record/all;exec bash"
 sleep 5s
+
+
+echo "All processes launched."

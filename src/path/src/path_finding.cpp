@@ -84,6 +84,12 @@ public:
         current_velocity_ = Eigen::Vector3d(0.0, 0.0, 0.0);
 
         ros::NodeHandle nh;
+
+        if (!nh.getParam("/is_flight", is_flight_mode)) {
+            ROS_WARN("Parameter /is_flight not found, defaulting to 1 (Real Flight)");
+            is_flight_mode = 1; // Default to real flight
+        }
+        
         local_pos_sub_ = nh.subscribe<geometry_msgs::PoseStamped>("/mavros/local_position/pose", 10, &ShortestPathNode::local_pos_cb, this);
         local_vel_sub_ = nh.subscribe<geometry_msgs::TwistStamped>("/mavros/local_position/velocity_local", 10, &ShortestPathNode::local_vel_cb, this);
         balloon_sub_ = nh.subscribe<swarm_msgs::MassPoints>("/balloons/masspoint", 10, &ShortestPathNode::balloonsCallback, this);
@@ -112,8 +118,12 @@ public:
         for (const auto &b : msg->points) {
             Balloon balloon;
             balloon.position = Eigen::Vector3d(b.position.x, b.position.y, b.position.z);
-            balloon.velocity = Eigen::Vector3d(b.velocity.x, b.velocity.y, b.velocity.z);
-            // balloon.velocity = Eigen::Vector3d(0., 0., 0.);
+            if (is_flight_mode == 1) {
+                balloon.velocity = Eigen::Vector3d(0., 0., 0.);
+            }
+            else {
+                balloon.velocity = Eigen::Vector3d(b.velocity.x, b.velocity.y, b.velocity.z);
+            }
             balloons_.push_back(balloon);
         }
     }
@@ -156,6 +166,7 @@ private:
     ros::Timer timer_path;
     Eigen::Vector3d current_position_, current_velocity_;
     double path_T, mav_vel_;
+    int is_flight_mode;
     std::vector<Balloon> balloons_;
     bool pathRead_=true;
 };
