@@ -10,6 +10,8 @@
 #include <algorithm>
 #include <mutex>
 #include <limits>
+#include <exception>
+#include <map> // For Dijkstra
 
 // Required ROS Message Headers
 #include <geometry_msgs/Vector3.h>
@@ -92,33 +94,67 @@ inline bool isEqualFloat(double a, double b, double epsilon = 1e-6) {
 
 class PathPlanningNode {
 public:
+    // --- Graph Search Helper Structs ---
+    // Represents a node in the graph search (Layer + Velocity Index)
+    struct GraphNode {
+        int layer; // Corresponds to waypoint index in the replan sequence (0 is freeze_point)
+        int vel_idx; // Index of the candidate velocity at this waypoint
+
+        // Comparison for priority queue or map keys
+        bool operator<(const GraphNode& other) const {
+            if (layer != other.layer) return layer < other.layer;
+            return vel_idx < other.vel_idx;
+        }
+    };
+
+    // Stores info needed for Dijkstra/forward pass
+    struct NodeInfo {
+        double min_time = std::numeric_limits<double>::infinity(); // Min time to reach this node
+        int prev_layer_vel_idx = -1; // Velocity index in the previous layer that led here
+        // Store PMM results for the optimal incoming edge (optional, can recalculate later)
+        // swarm_msgs::TimeOptimalPMMParam optimal_incoming_param;
+    };
+    // --- End Helper Structs ---
+
+
     // Constructor
     PathPlanningNode() : nh_("~") {
         // Load parameters
         loadConstraints();
-        nh_.param<double>("freeze_duration", freeze_duration_, 1.0);
+        nh_.param<double>("freeze_duration", freeze_duration_, 2.0);
         nh_.param<int>("initial_sampling_points", initial_sampling_points_, 100);
         nh_.param<int>("replanned_sampling_points", replanned_sampling_points_, 50);
-        nh_.param<std::string>("world_frame_id", world_frame_id_, "world"); // Default frame
+        nh_.param<std::string>("world_frame_id", world_frame_id_, "world");
+
+        // Graph search parameters
+        nh_.param<int>("num_velocity_directions", num_v_dir_, 21); // Number of direction candidates
+        nh_.param<int>("num_velocity_magnitudes", num_v_mag_, 9); // Number of speed candidates
+        nh_.param<double>("smoothing_base_velocity", base_velocity_, 4.0); // Base speed for candidates
+        nh_.param<double>("max_angle_deviation_deg", max_angle_dev_deg_, 15.0); // Cone angle for direction sampling
+        nh_.param<double>("speed_deviation_ratio", speed_dev_ratio_, 0.5); // +/- ratio for speed sampling
 
         if (initial_sampling_points_ < 2) initial_sampling_points_ = 2;
         if (replanned_sampling_points_ < 2) replanned_sampling_points_ = 2;
+        if (num_v_dir_ < 1) num_v_dir_ = 1;
+        if (num_v_mag_ < 1) num_v_mag_ = 1;
+        if (max_angle_dev_deg_ < 0.0) max_angle_dev_deg_ = 0.0;
+        if (speed_dev_ratio_ < 0.0) speed_dev_ratio_ = 0.0;
 
         ROS_INFO("PathPlanningNode initialized:");
         ROS_INFO("  freeze_duration: %.2f s", freeze_duration_);
         ROS_INFO("  initial_sampling_points: %d", initial_sampling_points_);
         ROS_INFO("  replanned_sampling_points: %d", replanned_sampling_points_);
         ROS_INFO("  world_frame_id: %s", world_frame_id_.c_str());
+        ROS_INFO("  Graph Search Params: dirs=%d, mags=%d, base_vel=%.1f, angle_dev=%.1f deg, speed_dev=%.2f",
+                 num_v_dir_, num_v_mag_, base_velocity_, max_angle_dev_deg_, speed_dev_ratio_);
+
 
         // Publishers
-        // Publishes the (potentially stitched) trajectory for the controller
-        discrete_trajectory_pub_ = nh_.advertise<swarm_msgs::DiscreteTrajectory>("/stitched_trajectory", 5); // Topic name changed
-        // Optional: Publisher for visualization
+        discrete_trajectory_pub_ = nh_.advertise<swarm_msgs::DiscreteTrajectory>("/stitched_trajectory", 5);
         stitched_path_viz_pub_ = nh_.advertise<nav_msgs::Path>("visualization/stitched_path", 1);
 
         // Subscribers
         path_points_sub_ = nh_.subscribe("/path_points", 5, &PathPlanningNode::pathPointsCallback, this);
-        // Subscribe to drone pose (adjust topic name as needed)
         pose_sub_ = nh_.subscribe("/mavros/local_position/pose", 10, &PathPlanningNode::poseCallback, this, ros::TransportHints().tcpNoDelay());
         vel_sub_ = nh_.subscribe("/mavros/local_position/velocity_local", 10, &PathPlanningNode::velocityCallback, this, ros::TransportHints().tcpNoDelay());
 
@@ -134,20 +170,25 @@ public:
 private:
     // ROS Communication Handles
     ros::NodeHandle nh_;
-    ros::Publisher discrete_trajectory_pub_; // Publishes the final stitched trajectory
-    ros::Publisher stitched_path_viz_pub_; // Visualization publisher
+    ros::Publisher discrete_trajectory_pub_;
+    ros::Publisher stitched_path_viz_pub_;
     ros::Subscriber path_points_sub_;
-    ros::Subscriber pose_sub_; // Subscriber for drone pose
-    ros::Subscriber vel_sub_;
+    ros::Subscriber pose_sub_;
+    ros::Subscriber vel_sub_; // Velocity subscriber
 
     // Constraint Parameters
     std::vector<double> v_max_, v_min_, u_max_, u_min_;
 
-    // Stitching Parameters
+    // Stitching & Graph Search Parameters
     double freeze_duration_;
     int initial_sampling_points_;   // Sampling for the very first trajectory
     int replanned_sampling_points_; // Sampling for the replanned PMM segment
     std::string world_frame_id_;
+    int num_v_dir_;
+    int num_v_mag_;
+    double base_velocity_;
+    double max_angle_dev_deg_;
+    double speed_dev_ratio_;
 
     // State Variables for Stitching
     std::vector<swarm_msgs::DiscreteTrajectoryPoint> current_published_trajectory_;
@@ -157,10 +198,10 @@ private:
     std::mutex pose_mutex_;       // Protects current_drone_pose_ access
     std::mutex trajectory_mutex_; // Protects current_published_trajectory_ access
 
-    // Intermediate variables (used during calculations)
-    geometry_msgs::Vector3 current_velocity_; // From input msg
-    double current_V_;                      // From input msg
-    geometry_msgs::Vector3 p1_, p2_, p3_, v1_, v2_, v_dir_, v_; // For smoothing
+    // Intermediate variables
+    geometry_msgs::Vector3 current_drone_velocity_; // Store current drone velocity
+    double current_V_; // Speed used for smoothing (can be drone speed or fixed base)
+    geometry_msgs::Vector3 p1_, p2_, p3_, v1_, v2_, v_dir_, v_;
 
     // Sampling Constants
     const double sampling_epsilon_ = 1e-9;
@@ -197,6 +238,54 @@ private:
 
     // Publish visualization helper
     void publishVisualization(const std::vector<swarm_msgs::DiscreteTrajectoryPoint>& trajectory_to_visualize);
+
+    // ** NEW Graph Search Helpers **
+    /**
+     * @brief Generates candidate velocities for a waypoint.
+     * @param prev_pos Position of the previous waypoint (or freeze point).
+     * @param current_pos Position of the current waypoint where candidates are generated.
+     * @param next_pos Position of the next waypoint.
+     * @param base_vel Base velocity magnitude.
+     * @param num_dirs Number of direction samples.
+     * @param num_mags Number of magnitude samples.
+     * @param angle_dev_rad Max angle deviation for direction sampling (radians).
+     * @param speed_dev_ratio +/- ratio for speed sampling.
+     * @return Vector of candidate velocity vectors.
+     */
+    std::vector<geometry_msgs::Vector3> generateCandidateVelocities(
+        const geometry_msgs::Vector3& prev_pos,
+        const geometry_msgs::Vector3& current_pos,
+        const geometry_msgs::Vector3& next_pos,
+        double base_vel,
+        int num_dirs, int num_mags,
+        double angle_dev_rad, double speed_dev_ratio);
+
+    /**
+     * @brief Performs the forward pass (Dijkstra-like) to find minimum times.
+     * @param waypoints Sequence of waypoints for replanning (starts with freeze point pos).
+     * @param start_vel Velocity at the freeze point.
+     * @param candidate_velocities candidate_velocities[i] holds candidates for waypoints[i+1].
+     * @param final_target_vel Fixed velocity at the final waypoint.
+     * @param[out] node_infos Map storing NodeInfo (min_time, predecessor) for each graph node.
+     * @param[out] final_min_time Minimum time to reach the final waypoint.
+     * @param[out] final_pred_vel_idx Index of the best velocity at the second-to-last waypoint.
+     * @return True if a path to the end was found, false otherwise.
+     */
+     bool findOptimalVelocityPath(
+         const std::vector<geometry_msgs::Vector3>& waypoints, // Waypoints[0] = freeze_pos
+         const geometry_msgs::Vector3& start_vel, // Vel at freeze_point
+         const std::vector<std::vector<geometry_msgs::Vector3>>& candidate_velocities, // candidates[i] is for waypoint i+1
+         const geometry_msgs::Vector3& final_target_vel, // Vel at last waypoint
+         std::map<GraphNode, NodeInfo>& node_infos,
+         double& final_min_time,
+         int& final_pred_vel_idx);
+
+     /**
+      * @brief Helper to calculate PMM time between two states. Returns infinity on failure.
+      */
+     double calculatePMMTime(const geometry_msgs::Vector3& p0, const geometry_msgs::Vector3& v0,
+                             const geometry_msgs::Vector3& pT, const geometry_msgs::Vector3& vT);
+
 
 };
 

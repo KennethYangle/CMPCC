@@ -61,8 +61,8 @@ namespace ft {
         trajectory_points_ = msg->points; // Copy the points
         total_trajectory_time_ = trajectory_points_.back().time_from_start; // Get total duration
 
-        ROS_INFO("Map: Set new trajectory with %zu points, duration: %.3f s",
-                 trajectory_points_.size(), total_trajectory_time_);
+        // ROS_INFO("Map: Set new trajectory with %zu points, duration: %.3f s",
+        //          trajectory_points_.size(), total_trajectory_time_);
     }
 
     // Find the time on the trajectory corresponding to the spatially closest point

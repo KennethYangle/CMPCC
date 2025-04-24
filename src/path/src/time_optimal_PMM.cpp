@@ -165,7 +165,7 @@ double TimeOptimalPMM::find_alpha(double T_target, double tol = 1e-2, int max_it
 
         auto [_, __, T, case_idx_] = compute_times();
         if (case_idx_ < 1.5) {      // case_idx_ == 0 or case_idx_ == 1
-            std::cout << T << std::endl;
+            // std::cout << T << std::endl;
             if (T > T_target)
                 alpha_min = alpha_mid;
             else
@@ -195,21 +195,21 @@ std::tuple<Vector3, Vector3, double, Vector3> TimeOptimalPMM3D::compute_times() 
 
     // Determine the maximum minimum time
     T = std::max({T_x, T_y, T_z});
-    std::cout << "T: " << T << ", T_x: " << T_x << ", T_y: " << T_y << ", T_z: " << T_z << std::endl;
+    // std::cout << "T: " << T << ", T_x: " << T_x << ", T_y: " << T_y << ", T_z: " << T_z << std::endl;
 
     // Find the alpha value for the remaining two axes
     double alpha_x = 1.0, alpha_y = 1.0, alpha_z = 1.0;
     if (T_x < T)
         alpha_x = pmm_x.find_alpha(T);
-    std::cout << "alpha_x: " << pmm_x.alpha << ", t1: " << pmm_x.t1_ << ", t2: " << pmm_x.t2_ << ", T: " << pmm_x.T_ << std::endl;
+    // std::cout << "alpha_x: " << pmm_x.alpha << ", t1: " << pmm_x.t1_ << ", t2: " << pmm_x.t2_ << ", T: " << pmm_x.T_ << std::endl;
 
     if (T_y < T)
         alpha_y = pmm_y.find_alpha(T);
-    std::cout << "alpha_y: " << pmm_y.alpha << ", t1: " << pmm_y.t1_ << ", t2: " << pmm_y.t2_ << ", T: " << pmm_y.T_ << std::endl;
+    // std::cout << "alpha_y: " << pmm_y.alpha << ", t1: " << pmm_y.t1_ << ", t2: " << pmm_y.t2_ << ", T: " << pmm_y.T_ << std::endl;
 
     if (T_z < T)
         alpha_z = pmm_z.find_alpha(T);
-    std::cout << "alpha_z: " << pmm_z.alpha << ", t1: " << pmm_z.t1_ << ", t2: " << pmm_z.t2_ << ", T: " << pmm_z.T_ << std::endl;
+    // std::cout << "alpha_z: " << pmm_z.alpha << ", t1: " << pmm_z.t1_ << ", t2: " << pmm_z.t2_ << ", T: " << pmm_z.T_ << std::endl;
 
     Vector3 t1_vec, t2_vec, case_idx_vec;
     t1_vec.x = pmm_x.t1_; t1_vec.y = pmm_y.t1_; t1_vec.z = pmm_z.t1_;

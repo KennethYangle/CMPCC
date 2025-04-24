@@ -218,27 +218,6 @@ int main(int argc, char **argv) {
     cmdMsg.header.frame_id = "world"; // Or get from parameter
     refTraj_msg.header.frame_id = "world"; // Or get from parameter
 
-    // --- Initial hover command can be removed or kept as fallback ---
-    /*
-    tmpPoint.x = 0; tmpPoint.y = 0; tmpPoint.z = 1.0; // Start hover higher?
-    cmdMsg.position = tmpPoint;
-    tmpVector.x = 0; tmpVector.y = 0; tmpVector.z = 0; cmdMsg.velocity = tmpVector;
-    tmpVector.x = 0; tmpVector.y = 0; tmpVector.z = 0; cmdMsg.acceleration = tmpVector;
-    cmdMsg.yaw = 0.0;
-    cmdMsg.yaw_dot = 0;
-    ros::Rate init_rate(10);
-    ros::Time startT = ros::Time::now();
-    while (ros::ok() && (ros::Time::now() - startT).toSec() < 1.0) { // Hover briefly
-        cmdMsg.header.stamp = ros::Time::now();
-        cmd_pub.publish(cmdMsg);
-        ros::spinOnce(); // Process callbacks during init hover
-        init_rate.sleep();
-    }
-    ROS_INFO("Initial hover complete. Starting trajectory chasing.");
-    */
-
-    // Use a MultiThreadedSpinner if callbacks need parallel processing,
-    // otherwise SingleThreadedSpinner is usually sufficient.
     ros::spin(); // Process callbacks
 
     return 0;
