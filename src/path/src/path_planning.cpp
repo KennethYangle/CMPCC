@@ -85,6 +85,10 @@ void PathPlanningNode::poseCallback(const geometry_msgs::PoseStamped::ConstPtr& 
     }
 }
 
+void PathPlanningNode::velocityCallback(const geometry_msgs::TwistStamped::ConstPtr& msg) {
+    current_V_ = norm_Vector3(msg->twist.linear);
+}
+
 // --- Main Path Points Callback ---
 void PathPlanningNode::pathPointsCallback(const swarm_msgs::MassPoints::ConstPtr& msg) {
     if (msg->points.size() < 2) {
@@ -169,7 +173,7 @@ void PathPlanningNode::pathPointsCallback(const swarm_msgs::MassPoints::ConstPtr
                 break;
             }
         }
-        
+
         // --- Step 3 & 4: Construct and Optimize Replanning Segments ---
         std::vector<swarm_msgs::TimeOptimalPMMParam> replan_params; // Parameters for segments *after* freeze_point
         if (perform_stitch && first_replan_target_idx != -1) {

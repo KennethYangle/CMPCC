@@ -15,6 +15,7 @@
 #include <geometry_msgs/Vector3.h>
 #include <geometry_msgs/Point.h>
 #include <geometry_msgs/PoseStamped.h> // For drone pose
+#include <geometry_msgs/TwistStamped.h>
 #include <std_msgs/Header.h>
 #include <nav_msgs/Path.h>
 #include <swarm_msgs/MassPoints.h>
@@ -119,6 +120,7 @@ public:
         path_points_sub_ = nh_.subscribe("/path_points", 5, &PathPlanningNode::pathPointsCallback, this);
         // Subscribe to drone pose (adjust topic name as needed)
         pose_sub_ = nh_.subscribe("/mavros/local_position/pose", 10, &PathPlanningNode::poseCallback, this, ros::TransportHints().tcpNoDelay());
+        vel_sub_ = nh_.subscribe("/mavros/local_position/velocity_local", 10, &PathPlanningNode::velocityCallback, this, ros::TransportHints().tcpNoDelay());
 
 
         ROS_INFO("PathPlanningNode ready.");
@@ -127,6 +129,7 @@ public:
     // Callbacks
     void pathPointsCallback(const swarm_msgs::MassPoints::ConstPtr& msg);
     void poseCallback(const geometry_msgs::PoseStamped::ConstPtr& msg);
+    void velocityCallback(const geometry_msgs::TwistStamped::ConstPtr& msg);
 
 private:
     // ROS Communication Handles
@@ -135,6 +138,7 @@ private:
     ros::Publisher stitched_path_viz_pub_; // Visualization publisher
     ros::Subscriber path_points_sub_;
     ros::Subscriber pose_sub_; // Subscriber for drone pose
+    ros::Subscriber vel_sub_;
 
     // Constraint Parameters
     std::vector<double> v_max_, v_min_, u_max_, u_min_;
