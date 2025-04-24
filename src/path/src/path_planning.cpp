@@ -160,37 +160,16 @@ void PathPlanningNode::pathPointsCallback(const swarm_msgs::MassPoints::ConstPtr
 
         // --- Step 2: Identify Relevant Waypoints from New Request (`msg->points`) ---
         int first_replan_target_idx = 1;
-        // int first_replan_target_idx = -1; // Index in msg->points for the first target *after* freeze_point
-        // if (perform_stitch) {
-        //     Eigen::Vector3d freeze_pos_eig(freeze_point.position.x, freeze_point.position.y, freeze_point.position.z);
-        //     double min_dist_sq = std::numeric_limits<double>::max();
-        //     int closest_idx = -1;
-
-        //     for (size_t i = 0; i < msg->points.size(); ++i) {
-        //         Eigen::Vector3d pt_pos_eig(msg->points[i].position.x, msg->points[i].position.y, msg->points[i].position.z);
-        //         double dist_sq = (freeze_pos_eig - pt_pos_eig).squaredNorm();
-        //         if (dist_sq < min_dist_sq) {
-        //             min_dist_sq = dist_sq;
-        //             closest_idx = i;
-        //         }
-        //     }
-
-        //     if (closest_idx < 0) { // Should not happen if msg->points is not empty
-        //         ROS_ERROR("Could not find closest point in new path request. Fallback.");
-        //         perform_stitch = false;
-        //     } else {
-        //          // The target for the first replanned segment is the point *after* the closest one.
-        //          first_replan_target_idx = closest_idx + 1;
-        //          if (first_replan_target_idx >= msg->points.size()) {
-        //              ROS_WARN("Freeze point is closest to the *last* point of the new request. No further path to replan. Trajectory will end at freeze point.");
-        //              // We will essentially just keep the frozen segment in this case.
-        //              first_replan_target_idx = -1; // Mark that there's nothing to replan
-        //          } else {
-        //              ROS_DEBUG("Replanning starts towards new waypoint index %d.", first_replan_target_idx);
-        //          }
-        //     }
-        // }
-
+        for (size_t i = 1; i < msg->points.size(); ++i) {
+            Eigen::Vector3d p0(msg->points[0].position.x, msg->points[0].position.y, msg->points[0].position.z);
+            Eigen::Vector3d pi(msg->points[i].position.x, msg->points[i].position.y, msg->points[i].position.z);
+            Eigen::Vector3d pf(freeze_point.position.x, freeze_point.position.y, freeze_point.position.z);
+            if ((pi - p0).dot(pi - pf) > 0) {
+                first_replan_target_idx = i;
+                break;
+            }
+        }
+        
         // --- Step 3 & 4: Construct and Optimize Replanning Segments ---
         std::vector<swarm_msgs::TimeOptimalPMMParam> replan_params; // Parameters for segments *after* freeze_point
         if (perform_stitch && first_replan_target_idx != -1) {
