@@ -1,0 +1,23 @@
+<launch>
+    <arg name="freeze_duration" default="0.5" />
+    <arg name="initial_sampling_points" default="100" />
+    <arg name="replanned_sampling_points" default="50" />
+    <arg name="world_frame_id" default="world" />
+    <arg name="num_velocity_directions" default="21" />
+    <arg name="num_velocity_magnitudes" default="9" />
+    <arg name="smoothing_base_velocity" default="8.0" />
+    <arg name="max_angle_deviation_deg" default="15.0" />
+    <arg name="speed_deviation_ratio" default="0.5" />
+
+    <node name="path_planning_node" pkg="path" type="path_planning_node" output="screen">
+        <param name="freeze_duration" value="$(arg freeze_duration)"/>
+        <param name="initial_sampling_points" value="$(arg initial_sampling_points)"/>
+        <param name="replanned_sampling_points" value="$(arg replanned_sampling_points)"/>
+        <param name="world_frame_id" value="$(arg world_frame_id)"/>
+        <param name="num_velocity_directions" value="$(arg num_velocity_directions)"/>
+        <param name="num_velocity_magnitudes" value="$(arg num_velocity_magnitudes)"/>
+        <param name="smoothing_base_velocity" value="$(arg smoothing_base_velocity)"/>
+        <param name="max_angle_deviation_deg" value="$(arg max_angle_deviation_deg)"/>
+        <param name="speed_deviation_ratio" value="$(arg speed_deviation_ratio)"/>
+    </node>
+</launch>

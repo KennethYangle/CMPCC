@@ -97,13 +97,13 @@ sleep 2s
 # 路径、轨迹规划 + MPCC控制
 gnome-terminal --tab -t "Path Finding" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun path path_finding_node;exec bash"
 sleep 1s
-gnome-terminal --tab -t "Path Planning" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun path path_planning_node;exec bash"
+gnome-terminal --tab -t "Path Planning" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch path path_planning.launch;exec bash"
 sleep 1s
 gnome-terminal --tab -t "MPCC" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch cmpcc pva_chasing.launch;exec bash"
 sleep 2s
 
 # 画图，可选
-gnome-terminal --tab -t "Path Logging" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun path path_logging_node;exec bash"
+gnome-terminal --tab -t "Path Logging" -- bash -c "source ${WS_DIR}/devel/setup.bash;roslaunch path path_logging.launch;exec bash"
 # gnome-terminal --tab -t "Path Plottor" -- bash -c "source ${WS_DIR}/devel/setup.bash;rosrun path path_logger_plotter.py;exec bash"
 sleep 1s
 

@@ -1,7 +1,7 @@
 # x, y, z order, all positive
 # velocity constraint
-v_max: [15., 15., 10.]
-v_min: [15., 15., 10.]
+v_max: [5., 5., 2.5]
+v_min: [5., 5., 2.5]
 # acceleration constraint
-u_max: [6., 6., 4.]
+u_max: [6., 6., 3.]
 u_min: [6., 6., 3.]

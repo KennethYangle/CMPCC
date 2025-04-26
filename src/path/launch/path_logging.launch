@@ -1,0 +1,13 @@
+<launch>
+    <arg name="world_frame_id" default="world" />
+    <arg name="max_history_size" default="2000" />
+    <arg name="min_viz_velocity" default="0.0" />
+    <arg name="max_viz_velocity" default="10.0" />
+
+    <node name="path_logging_node" pkg="path" type="path_logging_node" output="screen">
+        <param name="world_frame_id" value="$(arg world_frame_id)"/>
+        <param name="max_history_size" value="$(arg max_history_size)"/>
+        <param name="min_viz_velocity" value="$(arg min_viz_velocity)"/>
+        <param name="max_viz_velocity" value="$(arg max_viz_velocity)"/>
+    </node>
+</launch>
