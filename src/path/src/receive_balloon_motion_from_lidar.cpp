@@ -7,6 +7,8 @@
 #include <swarm_msgs/MassPoints.h>
 #include <tf/transform_datatypes.h>
 #include <mavros_msgs/State.h>
+#include <cmath> // For sqrt
+#include <limits> // For std::numeric_limits
 
 class BalloonMotionReceiver {
 public:
@@ -144,7 +146,6 @@ private:
         swarm_msgs::MassPoints transformed_masspoints;
 
         // Track the point with the smallest combined error
-        double min_combined_error = std::numeric_limits<double>::infinity();
         int matching_point_index = -1;
 
         // 变换每一个目标点
@@ -207,20 +208,34 @@ private:
         }
 
         // After processing all points, check if there was a match
-        if (is_matching_ && matching_point_index >= 0) {
-            // Update the last matching offset with the position of the matched point
-            swarm_msgs::MassPoint matched_point = transformed_masspoints.points[matching_point_index];
-            last_matching_offset_.x += matched_point.position.x - mav_pos_.x;
-            last_matching_offset_.y += matched_point.position.y - mav_pos_.y;
-            last_matching_offset_.z += matched_point.position.z - mav_pos_.z;
+        if (is_matching_) {
+            if (matching_point_index >= 0) { // A match was found
+                // Update the last matching offset with the position of the matched point
+                swarm_msgs::MassPoint matched_point = transformed_masspoints.points[matching_point_index];
+                last_matching_offset_.x += matched_point.position.x - mav_pos_.x;
+                last_matching_offset_.y += matched_point.position.y - mav_pos_.y;
+                last_matching_offset_.z += matched_point.position.z - mav_pos_.z;
 
-            std::cout << "Matching Success.\n"
-                    << "last_matching_offset_: " << last_matching_offset_.x << ", "
-                    << last_matching_offset_.y << ", " << last_matching_offset_.z
-                    << "\nmin_combined_error: " << min_combined_error << std::endl;
-            
-            // The point at 'matching_point_index' is the best match, remove it from the list
-            transformed_masspoints.points.erase(transformed_masspoints.points.begin() + matching_point_index);
+                std::cout << "Matching Success.\n"
+                        << "last_matching_offset_: " << last_matching_offset_.x << ", "
+                        << last_matching_offset_.y << ", " << last_matching_offset_.z
+                        << std::endl;
+                
+                // The point at 'matching_point_index' is the best match, remove it from the list
+                transformed_masspoints.points.erase(transformed_masspoints.points.begin() + matching_point_index);
+            } else { // is_matching_ is true, but no match was found. Filter out points within 3 meters (horizontal distance) of mav_pos_
+                std::cout << "No match found !!!!!" << std::endl;
+                auto it = transformed_masspoints.points.begin();
+                while (it != transformed_masspoints.points.end()) {
+                    double dx_filter = it->position.x - mav_pos_.x;
+                    double dy_filter = it->position.y - mav_pos_.y;
+                    if (sqrt(dx_filter * dx_filter + dy_filter * dy_filter) <= 3.0) {
+                        it = transformed_masspoints.points.erase(it);
+                    } else {
+                        ++it;
+                    }
+                }
+            }
         }
 
         // 显示转换后的气球位置
