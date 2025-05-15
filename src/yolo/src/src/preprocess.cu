@@ -126,10 +126,6 @@ void cuda_preprocess(
   cv::Mat m2x3_s2d(2, 3, CV_32F, s2d.value);
   cv::Mat m2x3_d2s(2, 3, CV_32F, d2s.value);
 
-  cv::imshow("m2x3_s2d", m2x3_s2d);
-  cv::imshow("m2x3_d2s", m2x3_d2s);
-
-
   // cv::Mat m2x3_s2d(2, 3, CV_8UC3, s2d.value);
   // cv::Mat m2x3_d2s(2, 3, CV_8UC3, d2s.value);
   cv::invertAffineTransform(m2x3_s2d, m2x3_d2s);

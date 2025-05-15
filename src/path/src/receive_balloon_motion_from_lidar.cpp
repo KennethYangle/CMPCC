@@ -176,12 +176,13 @@ private:
             transformed_point.velocity = point.velocity;
             // transformed_point.velocity.x = transformed_point.velocity.y = transformed_point.velocity.z = 0.0;
 
-            // 保持目标的体积不变
+            // 保持目标的体积和反射强度不变
             transformed_point.volume = point.volume;
+            transformed_point.intensity = point.intensity;
 
 
             // 如果不进行匹配，则清除与无人机10米范围内的点
-            if (!is_matching_ || mav_state_mode == "OFFBOARD") {
+            if (!is_matching_) {
                 double dx = transformed_point.position.x - mav_pos_.x;
                 double dy = transformed_point.position.y - mav_pos_.y;
 
@@ -195,18 +196,8 @@ private:
                 double dy = transformed_point.position.y - mav_pos_.y;
                 double position_error = sqrt(dx * dx + dy * dy);
 
-                // Calculate the velocity error
-                double dvx = transformed_point.velocity.x - mav_vel_.x;
-                double dvy = transformed_point.velocity.y - mav_vel_.y;
-                double dvz = transformed_point.velocity.z - mav_vel_.z;
-                double velocity_error = sqrt(dvx * dvx + dvy * dvy + dvz * dvz);
-
-                // Calculate the combined error: x-y distance error + 5 times velocity error
-                double combined_error = position_error + 4 * velocity_error;
-
                 // If this is the smallest combined error so far, track it
-                if (combined_error < min_combined_error && combined_error < 25 && position_error < 10) {
-                    min_combined_error = combined_error;
+                if (position_error < 20 && transformed_point.intensity > 30) {
                     matching_point_index = i;  // Store the index of the best matching point
                 }
             }
@@ -216,7 +207,7 @@ private:
         }
 
         // After processing all points, check if there was a match
-        if (is_matching_ && matching_point_index >= 0 && mav_state_mode != "OFFBOARD") {
+        if (is_matching_ && matching_point_index >= 0) {
             // Update the last matching offset with the position of the matched point
             swarm_msgs::MassPoint matched_point = transformed_masspoints.points[matching_point_index];
             last_matching_offset_.x += matched_point.position.x - mav_pos_.x;
