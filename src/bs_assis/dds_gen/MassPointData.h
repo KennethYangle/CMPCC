@@ -256,6 +256,25 @@ public:
      */
     eProsima_user_DllExport int64_t& volume();
 
+    /*!
+     * @brief This function sets a value in member intensity
+     * @param _intensity New value for member intensity
+     */
+    eProsima_user_DllExport void intensity(
+            float _intensity);
+
+    /*!
+     * @brief This function returns the value of member intensity
+     * @return Value of member intensity
+     */
+    eProsima_user_DllExport float intensity() const;
+
+    /*!
+     * @brief This function returns a reference to member intensity
+     * @return Reference to member intensity
+     */
+    eProsima_user_DllExport float& intensity();
+
 
     /*!
     * @brief This function returns the maximum serialized size of an object
@@ -323,6 +342,7 @@ private:
     float m_vel_y;
     float m_vel_z;
     int64_t m_volume;
+    float m_intensity;
 
 };
 

@@ -48,6 +48,7 @@ class MassPointsDataSubscriber : public DDS_Subscriber
                     masspointMsg.velocity.z = masspoint_data.vel_z();
 
                     masspointMsg.volume = masspoint_data.volume();
+                    masspointMsg.intensity = masspoint_data.intensity();
 
                     masspointsMsg.points.push_back(masspointMsg);
                 }

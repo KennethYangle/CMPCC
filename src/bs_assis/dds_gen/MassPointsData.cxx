@@ -34,8 +34,8 @@ using namespace eprosima::fastcdr::exception;
 
 #include <utility>
 
-#define MassPointsData_max_cdr_typesize 3208ULL;
-#define MassPointData_max_cdr_typesize 32ULL;
+#define MassPointsData_max_cdr_typesize 4004ULL;
+#define MassPointData_max_cdr_typesize 36ULL;
 #define MassPointsData_max_key_cdr_typesize 0ULL;
 #define MassPointData_max_key_cdr_typesize 0ULL;
 

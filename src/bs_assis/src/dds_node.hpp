@@ -100,6 +100,7 @@ MassPointData constructMassPoint(const swarm_msgs::MassPoint msg)
     data.vel_z(msg.velocity.z);
 
     data.volume(msg.volume);
+    data.intensity(msg.intensity);
     return data;
 }
 

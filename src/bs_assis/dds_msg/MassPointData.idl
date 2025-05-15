@@ -11,4 +11,5 @@ struct MassPointData
     float vel_z;
 
     int64 volume;
+    float intensity;
 };

@@ -34,7 +34,7 @@ using namespace eprosima::fastcdr::exception;
 
 #include <utility>
 
-#define MassPointData_max_cdr_typesize 32ULL;
+#define MassPointData_max_cdr_typesize 36ULL;
 #define MassPointData_max_key_cdr_typesize 0ULL;
 
 MassPointData::MassPointData()
@@ -53,11 +53,14 @@ MassPointData::MassPointData()
     m_vel_z = 0.0;
     // long long m_volume
     m_volume = 0;
+    // float m_intensity
+    m_intensity = 0.0;
 
 }
 
 MassPointData::~MassPointData()
 {
+
 
 
 
@@ -77,6 +80,7 @@ MassPointData::MassPointData(
     m_vel_y = x.m_vel_y;
     m_vel_z = x.m_vel_z;
     m_volume = x.m_volume;
+    m_intensity = x.m_intensity;
 }
 
 MassPointData::MassPointData(
@@ -89,6 +93,7 @@ MassPointData::MassPointData(
     m_vel_y = x.m_vel_y;
     m_vel_z = x.m_vel_z;
     m_volume = x.m_volume;
+    m_intensity = x.m_intensity;
 }
 
 MassPointData& MassPointData::operator =(
@@ -102,6 +107,7 @@ MassPointData& MassPointData::operator =(
     m_vel_y = x.m_vel_y;
     m_vel_z = x.m_vel_z;
     m_volume = x.m_volume;
+    m_intensity = x.m_intensity;
 
     return *this;
 }
@@ -117,6 +123,7 @@ MassPointData& MassPointData::operator =(
     m_vel_y = x.m_vel_y;
     m_vel_z = x.m_vel_z;
     m_volume = x.m_volume;
+    m_intensity = x.m_intensity;
 
     return *this;
 }
@@ -125,7 +132,7 @@ bool MassPointData::operator ==(
         const MassPointData& x) const
 {
 
-    return (m_pos_x == x.m_pos_x && m_pos_y == x.m_pos_y && m_pos_z == x.m_pos_z && m_vel_x == x.m_vel_x && m_vel_y == x.m_vel_y && m_vel_z == x.m_vel_z && m_volume == x.m_volume);
+    return (m_pos_x == x.m_pos_x && m_pos_y == x.m_pos_y && m_pos_z == x.m_pos_z && m_vel_x == x.m_vel_x && m_vel_y == x.m_vel_y && m_vel_z == x.m_vel_z && m_volume == x.m_volume && m_intensity == x.m_intensity);
 }
 
 bool MassPointData::operator !=(
@@ -170,6 +177,9 @@ size_t MassPointData::getCdrSerializedSize(
     current_alignment += 8 + eprosima::fastcdr::Cdr::alignment(current_alignment, 8);
 
 
+    current_alignment += 4 + eprosima::fastcdr::Cdr::alignment(current_alignment, 4);
+
+
 
     return current_alignment - initial_alignment;
 }
@@ -185,6 +195,7 @@ void MassPointData::serialize(
     scdr << m_vel_y;
     scdr << m_vel_z;
     scdr << m_volume;
+    scdr << m_intensity;
 
 }
 
@@ -199,6 +210,7 @@ void MassPointData::deserialize(
     dcdr >> m_vel_y;
     dcdr >> m_vel_z;
     dcdr >> m_volume;
+    dcdr >> m_intensity;
 }
 
 /*!
@@ -395,6 +407,34 @@ int64_t MassPointData::volume() const
 int64_t& MassPointData::volume()
 {
     return m_volume;
+}
+
+/*!
+ * @brief This function sets a value in member intensity
+ * @param _intensity New value for member intensity
+ */
+void MassPointData::intensity(
+        float _intensity)
+{
+    m_intensity = _intensity;
+}
+
+/*!
+ * @brief This function returns the value of member intensity
+ * @return Value of member intensity
+ */
+float MassPointData::intensity() const
+{
+    return m_intensity;
+}
+
+/*!
+ * @brief This function returns a reference to member intensity
+ * @return Reference to member intensity
+ */
+float& MassPointData::intensity()
+{
+    return m_intensity;
 }
 
 

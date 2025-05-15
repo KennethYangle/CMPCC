@@ -50,12 +50,12 @@ namespace details {
 
     struct MassPointData_f
     {
-        typedef int64_t MassPointData::* type;
+        typedef float MassPointData::* type;
         friend constexpr type get(
                 MassPointData_f);
     };
 
-    template struct MassPointData_rob<MassPointData_f, &MassPointData::m_volume>;
+    template struct MassPointData_rob<MassPointData_f, &MassPointData::m_intensity>;
 
     template <typename T, typename Tag>
     inline size_t constexpr MassPointData_offset_of() {
@@ -132,7 +132,7 @@ private:
 
     static constexpr bool is_plain_impl()
     {
-        return 32ULL == (details::MassPointData_offset_of<MassPointData, details::MassPointData_f>() + sizeof(int64_t));
+        return 36ULL == (details::MassPointData_offset_of<MassPointData, details::MassPointData_f>() + sizeof(float));
 
     }};
 
