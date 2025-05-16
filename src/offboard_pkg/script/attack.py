@@ -84,12 +84,12 @@ def pos_image_cb(msg):
     
 def calc_weight(w, w_max):
     global last_weight
-    if w > 30 or (last_weight and w > 20):
+    if w > 20 or (last_weight and w > 10):
         last_weight = True
         return 1.
     else:
         last_weight = False
-        return w / 30.
+        return w / 20.
 
 
 if __name__=="__main__":

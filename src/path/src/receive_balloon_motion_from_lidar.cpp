@@ -229,7 +229,7 @@ private:
                 while (it != transformed_masspoints.points.end()) {
                     double dx_filter = it->position.x - mav_pos_.x;
                     double dy_filter = it->position.y - mav_pos_.y;
-                    if (sqrt(dx_filter * dx_filter + dy_filter * dy_filter) <= 3.0) {
+                    if (sqrt(dx_filter * dx_filter + dy_filter * dy_filter) <= 0.0) {
                         it = transformed_masspoints.points.erase(it);
                     } else {
                         ++it;
